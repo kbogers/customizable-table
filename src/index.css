@@ -1,0 +1,145 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles to match the image */
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: #f9fafb;
+}
+
+/* Legacy filter icon styling - kept for compatibility */
+.filter-icon {
+  font-size: 1.2em;
+  color: #6b7280;
+  margin-left: 4px;
+  display: none; /* Hidden - now using SVG icons */
+}
+
+/* Phase Chip Styling */
+.phase-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 12px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1px solid #e5e7eb;
+  background-color: #ffffff;
+  color: #374151;
+  white-space: nowrap;
+}
+
+/* Specific styling for the table header to match image */
+th {
+  font-size: 0.75rem; /* 12px */
+  color: #111827; /* Gray 900 */
+  font-weight: 700;
+}
+
+/* Link styling for comments */
+a {
+  color: #2563eb;
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+/* Scrollbar styling for the table container if needed */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Table header interactions */
+th {
+  position: relative;
+}
+
+/* Drag preview styling */
+th[dragging="true"] {
+  opacity: 0.5;
+}
+
+/* Column resize cursor */
+.resize-handle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 4px;
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+}
+
+/* Better focus states */
+button:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Smooth column width transitions during resize */
+table {
+  table-layout: fixed;
+}
+
+/* Snappy column reordering animations - using cubic-bezier for crisp feel */
+th, td {
+  transition: transform 120ms cubic-bezier(0.2, 0, 0, 1), 
+              opacity 80ms ease-out, 
+              background-color 80ms ease-out;
+  will-change: transform;
+}
+
+/* Ensure resize handle is always clickable */
+th .cursor-col-resize {
+  z-index: 10;
+}
+
+/* GPU acceleration for smooth animations */
+.transition-all {
+  will-change: transform, opacity;
+}
+
+/* Crisp button interactions */
+button {
+  transition: background-color 80ms ease-out, opacity 80ms ease-out, transform 80ms ease-out;
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+/* Snappy row hover */
+tr {
+  transition: background-color 60ms ease-out;
+}
+
+/* Menu animation */
+[class*="fixed"][class*="rounded-lg"][class*="shadow-lg"] {
+  animation: menuAppear 100ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+@keyframes menuAppear {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
