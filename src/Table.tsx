@@ -355,7 +355,6 @@ interface HeaderCellProps {
 
 const HeaderCell: React.FC<HeaderCellProps> = ({ 
     header, 
-    columnOrder, 
     setColumnOrder, 
     dragState, 
     setDragState, 
