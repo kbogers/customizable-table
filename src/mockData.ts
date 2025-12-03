@@ -126,7 +126,7 @@ export const generateData = (count: number): Request[] => {
       physicianEmail: faker.internet.email({ firstName: firstName.toLowerCase(), lastName: lastName.toLowerCase() }),
       physicianFirstName: firstName,
       physicianLastName: lastName,
-      physicianPhone: faker.phone.number('+##########'),
+      physicianPhone: `+${faker.string.numeric(11)}`,
       physicianSpecialty: faker.helpers.arrayElement(specialties),
     });
   }
