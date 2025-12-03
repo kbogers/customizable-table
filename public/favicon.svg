@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Background -->
+  <rect width="32" height="32" rx="6" fill="#166534"/>
+  
+  <!-- Table grid -->
+  <rect x="5" y="7" width="22" height="18" rx="2" fill="white" fill-opacity="0.95"/>
+  
+  <!-- Header row background -->
+  <rect x="5" y="7" width="22" height="5" rx="2" fill="#166534" fill-opacity="0.15"/>
+  <rect x="5" y="10" width="22" height="2" fill="#166534" fill-opacity="0.15"/>
+  
+  <!-- Horizontal lines -->
+  <line x1="5" y1="12" x2="27" y2="12" stroke="#166534" stroke-width="0.75" stroke-opacity="0.4"/>
+  <line x1="5" y1="17" x2="27" y2="17" stroke="#166534" stroke-width="0.75" stroke-opacity="0.3"/>
+  <line x1="5" y1="22" x2="27" y2="22" stroke="#166534" stroke-width="0.75" stroke-opacity="0.3"/>
+  
+  <!-- Vertical lines -->
+  <line x1="12" y1="7" x2="12" y2="25" stroke="#166534" stroke-width="0.75" stroke-opacity="0.3"/>
+  <line x1="20" y1="7" x2="20" y2="25" stroke="#166534" stroke-width="0.75" stroke-opacity="0.3"/>
+</svg>
+
