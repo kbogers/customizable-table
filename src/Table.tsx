@@ -7,20 +7,48 @@ import {
     useReactTable,
     getSortedRowModel,
 } from '@tanstack/react-table';
-import type { SortingState, Column, Header, ColumnOrderState, VisibilityState } from '@tanstack/react-table';
+import type { SortingState, Column, Header, ColumnOrderState, VisibilityState, ColumnSizingState } from '@tanstack/react-table';
 import type { Request } from './mockData';
 
 const columnHelper = createColumnHelper<Request>();
 
-// Column definitions with readable names
-const columnConfig: { key: keyof Request; label: string }[] = [
-    { key: 'requestId', label: 'Request #' },
-    { key: 'physician', label: 'Physician' },
-    { key: 'institution', label: 'Institution' },
-    { key: 'country', label: 'Country' },
-    { key: 'owner', label: 'Owner' },
-    { key: 'phase', label: 'Phase' },
-    { key: 'comments', label: 'Comments' },
+// Column definitions with readable names and grouping
+interface ColumnConfigItem {
+    key: keyof Request;
+    label: string;
+    group: 'core' | 'details' | 'identifiers' | 'physician';
+    defaultVisible: boolean;
+}
+
+const columnConfig: ColumnConfigItem[] = [
+    // Core fields (visible by default)
+    { key: 'requestId', label: 'Request #', group: 'core', defaultVisible: true },
+    { key: 'physician', label: 'Physician', group: 'core', defaultVisible: true },
+    { key: 'institution', label: 'Institution', group: 'core', defaultVisible: true },
+    { key: 'country', label: 'Country', group: 'core', defaultVisible: true },
+    { key: 'owner', label: 'Owner', group: 'core', defaultVisible: true },
+    { key: 'phase', label: 'Phase', group: 'core', defaultVisible: true },
+    { key: 'comments', label: 'Comments', group: 'core', defaultVisible: true },
+
+    // Details fields (hidden by default)
+    { key: 'product', label: 'Product', group: 'details', defaultVisible: false },
+    { key: 'requestType', label: 'Request type', group: 'details', defaultVisible: false },
+    { key: 'fundingModel', label: 'Funding model', group: 'details', defaultVisible: false },
+    { key: 'receivedOn', label: 'Received on', group: 'details', defaultVisible: false },
+    { key: 'rationale', label: 'Rationale', group: 'details', defaultVisible: false },
+
+    // Identifiers (hidden by default)
+    { key: 'patientInitials', label: 'Patient initials', group: 'identifiers', defaultVisible: false },
+    { key: 'patientNumber', label: 'Patient number', group: 'identifiers', defaultVisible: false },
+    { key: 'castorId', label: 'Castor ID', group: 'identifiers', defaultVisible: false },
+    { key: 'eapDossierNumber', label: 'EAP dossier number', group: 'identifiers', defaultVisible: false },
+
+    // Physician details (hidden by default)
+    { key: 'physicianEmail', label: 'Physician email', group: 'physician', defaultVisible: false },
+    { key: 'physicianFirstName', label: 'Physician first name', group: 'physician', defaultVisible: false },
+    { key: 'physicianLastName', label: 'Physician last name', group: 'physician', defaultVisible: false },
+    { key: 'physicianPhone', label: 'Phone number', group: 'physician', defaultVisible: false },
+    { key: 'physicianSpecialty', label: 'Specialty', group: 'physician', defaultVisible: false },
 ];
 
 const getColumnLabel = (columnId: string): string => {
@@ -28,7 +56,25 @@ const getColumnLabel = (columnId: string): string => {
     return config?.label || columnId;
 };
 
+const getDefaultVisibility = (): VisibilityState => {
+    const visibility: VisibilityState = {};
+    columnConfig.forEach(col => {
+        if (!col.defaultVisible) {
+            visibility[col.key] = false;
+        }
+    });
+    return visibility;
+};
+
+const groupLabels: Record<string, string> = {
+    core: 'Core fields',
+    details: 'Request details',
+    identifiers: 'Identifiers',
+    physician: 'Physician details',
+};
+
 const columns = [
+    // Core columns
     columnHelper.accessor('requestId', {
         header: 'Request #',
         cell: (info) => <span className="font-medium text-gray-900">{info.getValue()}</span>,
@@ -50,8 +96,8 @@ const columns = [
     columnHelper.accessor('country', {
         header: 'Country',
         cell: (info) => info.getValue(),
-        size: 100,
-        minSize: 70,
+        size: 140,
+        minSize: 100,
     }),
     columnHelper.accessor('owner', {
         header: 'Owner',
@@ -76,6 +122,117 @@ const columns = [
             return val ? <span className="text-blue-500 cursor-pointer hover:underline truncate max-w-[200px] block" title={val}>{val}</span> : null;
         },
         size: 200,
+        minSize: 100,
+    }),
+
+    // Details columns
+    columnHelper.accessor('product', {
+        header: 'Product',
+        cell: (info) => info.getValue() || <span className="text-gray-400">—</span>,
+        size: 160,
+        minSize: 100,
+    }),
+    columnHelper.accessor('requestType', {
+        header: 'Request type',
+        cell: (info) => (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                {info.getValue()}
+            </span>
+        ),
+        size: 160,
+        minSize: 120,
+    }),
+    columnHelper.accessor('fundingModel', {
+        header: 'Funding model',
+        cell: (info) => info.getValue(),
+        size: 140,
+        minSize: 100,
+    }),
+    columnHelper.accessor('receivedOn', {
+        header: 'Received on',
+        cell: (info) => info.getValue(),
+        size: 120,
+        minSize: 100,
+    }),
+    columnHelper.accessor('rationale', {
+        header: 'Rationale',
+        cell: (info) => {
+            const val = info.getValue();
+            return val ? <span className="truncate max-w-[250px] block" title={val}>{val}</span> : <span className="text-gray-400">—</span>;
+        },
+        size: 280,
+        minSize: 150,
+    }),
+
+    // Identifiers columns
+    columnHelper.accessor('patientInitials', {
+        header: 'Patient initials',
+        cell: (info) => info.getValue() || <span className="text-gray-400">—</span>,
+        size: 120,
+        minSize: 80,
+    }),
+    columnHelper.accessor('patientNumber', {
+        header: 'Patient number',
+        cell: (info) => <span className="font-mono text-sm">{info.getValue()}</span>,
+        size: 140,
+        minSize: 100,
+    }),
+    columnHelper.accessor('castorId', {
+        header: 'Castor ID',
+        cell: (info) => {
+            const val = info.getValue();
+            return val ? <span className="font-mono text-sm">{val}</span> : <span className="text-gray-400">—</span>;
+        },
+        size: 120,
+        minSize: 80,
+    }),
+    columnHelper.accessor('eapDossierNumber', {
+        header: 'EAP dossier number',
+        cell: (info) => {
+            const val = info.getValue();
+            return val ? <span className="font-mono text-sm">{val}</span> : <span className="text-gray-400">—</span>;
+        },
+        size: 160,
+        minSize: 100,
+    }),
+
+    // Physician details columns
+    columnHelper.accessor('physicianEmail', {
+        header: 'Physician email',
+        cell: (info) => (
+            <a href={`mailto:${info.getValue()}`} className="text-blue-600 hover:underline truncate max-w-[200px] block">
+                {info.getValue()}
+            </a>
+        ),
+        size: 220,
+        minSize: 150,
+    }),
+    columnHelper.accessor('physicianFirstName', {
+        header: 'First name',
+        cell: (info) => info.getValue(),
+        size: 120,
+        minSize: 80,
+    }),
+    columnHelper.accessor('physicianLastName', {
+        header: 'Last name',
+        cell: (info) => info.getValue(),
+        size: 120,
+        minSize: 80,
+    }),
+    columnHelper.accessor('physicianPhone', {
+        header: 'Phone number',
+        cell: (info) => info.getValue(),
+        size: 140,
+        minSize: 100,
+    }),
+    columnHelper.accessor('physicianSpecialty', {
+        header: 'Specialty',
+        cell: (info) => (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                {info.getValue()}
+            </span>
+        ),
+        size: 140,
         minSize: 100,
     }),
 ];
@@ -155,6 +312,12 @@ const FilterIcon = () => (
 const ChevronDownIcon = () => (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+    </svg>
+);
+
+const ColumnsIcon = () => (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
     </svg>
 );
 
@@ -264,32 +427,61 @@ const ColumnVisibilityDropdown: React.FC<ColumnVisibilityDropdownProps> = ({ col
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    if (hiddenCount === 0) return null;
+    // Group columns by their group
+    const groupedColumns = useMemo(() => {
+        const groups: Record<string, Column<Request, unknown>[]> = {
+            core: [],
+            details: [],
+            identifiers: [],
+            physician: [],
+        };
+
+        columns.forEach(column => {
+            const config = columnConfig.find(c => c.key === column.id);
+            if (config) {
+                groups[config.group].push(column);
+            }
+        });
+
+        return groups;
+    }, [columns]);
 
     return (
         <div className="relative" ref={dropdownRef}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-md transition-colors duration-75"
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors duration-75 ${
+                    hiddenCount > 0 
+                        ? 'text-gray-600 bg-gray-100 hover:bg-gray-200 active:bg-gray-300' 
+                        : 'text-gray-500 hover:bg-gray-100 active:bg-gray-200'
+                }`}
             >
-                {hiddenCount} column{hiddenCount !== 1 ? 's' : ''} hidden
+                <ColumnsIcon />
+                {hiddenCount > 0 ? `${hiddenCount} hidden` : 'Fields'}
                 <ChevronDownIcon />
             </button>
             {isOpen && (
-                <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-[1000] min-w-[200px]">
-                    {columns.map((column) => (
-                        <button
-                            key={column.id}
-                            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 active:bg-gray-100 flex items-center justify-between"
-                            onClick={() => column.toggleVisibility()}
-                        >
-                            <span>{getColumnLabel(column.id)}</span>
-                            {column.getIsVisible() ? (
-                                <EyeIcon />
-                            ) : (
-                                <EyeOffIcon />
-                            )}
-                        </button>
+                <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-[1000] min-w-[260px] max-h-[400px] overflow-y-auto">
+                    {Object.entries(groupedColumns).map(([group, cols]) => (
+                        <div key={group}>
+                            <div className="px-4 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50">
+                                {groupLabels[group]}
+                            </div>
+                            {cols.map((column) => (
+                                <button
+                                    key={column.id}
+                                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 active:bg-gray-100 flex items-center justify-between"
+                                    onClick={() => column.toggleVisibility()}
+                                >
+                                    <span className={column.getIsVisible() ? '' : 'text-gray-400'}>{getColumnLabel(column.id)}</span>
+                                    {column.getIsVisible() ? (
+                                        <EyeIcon />
+                                    ) : (
+                                        <span className="text-gray-400"><EyeOffIcon /></span>
+                                    )}
+                                </button>
+                            ))}
+                        </div>
                     ))}
                 </div>
             )}
@@ -543,7 +735,7 @@ interface TableProps {
 
 export const Table: React.FC<TableProps> = ({ data }) => {
     const [sorting, setSorting] = useState<SortingState>([]);
-    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(getDefaultVisibility);
     const [columnOrder, setColumnOrder] = useState<ColumnOrderState>(
         columns.map(col => col.accessorKey as string)
     );
@@ -554,6 +746,66 @@ export const Table: React.FC<TableProps> = ({ data }) => {
     });
     const [isAnyResizing, setIsAnyResizing] = useState(false);
     const [resizingColumnId, setResizingColumnId] = useState<string | null>(null);
+    const [containerWidth, setContainerWidth] = useState(0);
+    const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({});
+    const [hasInitializedSizing, setHasInitializedSizing] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    // Calculate initial column sizes to fill available space
+    const initializeColumnSizes = (availableWidth: number) => {
+        // Get visible columns and their default sizes
+        const visibleColumnConfigs = columnConfig.filter(col => col.defaultVisible);
+        const defaultTotalWidth = visibleColumnConfigs.reduce((sum, col) => {
+            const colDef = columns.find(c => c.accessorKey === col.key);
+            return sum + (colDef?.size || 150);
+        }, 0);
+
+        // If container is wider than default columns, scale them up
+        if (availableWidth > defaultTotalWidth) {
+            const scaleFactor = availableWidth / defaultTotalWidth;
+            const newSizing: ColumnSizingState = {};
+
+            visibleColumnConfigs.forEach(col => {
+                const colDef = columns.find(c => c.accessorKey === col.key);
+                const defaultSize = colDef?.size || 150;
+                const minSize = colDef?.minSize || 50;
+                // Scale up but respect any practical max (3x default is reasonable)
+                newSizing[col.key] = Math.max(minSize, Math.floor(defaultSize * scaleFactor));
+            });
+
+            setColumnSizing(newSizing);
+        }
+        setHasInitializedSizing(true);
+    };
+
+    // Measure container width for table sizing
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+
+        const observer = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                const width = entry.contentRect.width;
+                setContainerWidth(width);
+                
+                // Initialize column sizes on first measurement
+                if (!hasInitializedSizing && width > 0) {
+                    initializeColumnSizes(width);
+                }
+            }
+        });
+        
+        observer.observe(container);
+        const initialWidth = container.clientWidth;
+        setContainerWidth(initialWidth);
+        
+        // Initialize if we have width immediately
+        if (!hasInitializedSizing && initialWidth > 0) {
+            initializeColumnSizes(initialWidth);
+        }
+        
+        return () => observer.disconnect();
+    }, [hasInitializedSizing]);
 
     // Calculate preview order based on current drag state
     const previewOrder = useMemo(() => {
@@ -577,10 +829,12 @@ export const Table: React.FC<TableProps> = ({ data }) => {
             sorting,
             columnVisibility,
             columnOrder: displayOrder,
+            columnSizing,
         },
         onSortingChange: setSorting,
         onColumnVisibilityChange: setColumnVisibility,
         onColumnOrderChange: setColumnOrder,
+        onColumnSizingChange: setColumnSizing,
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
         columnResizeMode: 'onChange',
@@ -600,10 +854,13 @@ export const Table: React.FC<TableProps> = ({ data }) => {
             </div>
 
             {/* Table */}
-            <div className="w-full overflow-x-auto bg-white border border-gray-200 rounded-lg shadow-sm">
+            <div ref={containerRef} className="w-full overflow-x-auto bg-white border border-gray-200 rounded-lg shadow-sm">
                 <table
-                    className="w-full text-left border-collapse"
-                    style={{ width: table.getCenterTotalSize() }}
+                    className="text-left border-collapse"
+                    style={{ 
+                        width: Math.max(table.getTotalSize(), containerWidth),
+                        tableLayout: 'fixed',
+                    }}
                 >
                     <thead className="bg-gray-50 border-b border-gray-200">
                         {table.getHeaderGroups().map((headerGroup) => (

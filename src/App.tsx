@@ -8,7 +8,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-8 font-sans text-gray-900">
-      <div className="max-w-[1400px] mx-auto">
+      <div className="w-full">
         <div className="mb-6 border-b border-gray-200">
           <nav className="-mb-px flex space-x-8">
             <a
