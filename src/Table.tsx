@@ -73,54 +73,83 @@ const groupLabels: Record<string, string> = {
     physician: 'Physician details',
 };
 
+// Truncated cell component with tooltip
+const TruncatedCell: React.FC<{ 
+    value: string | null | undefined; 
+    className?: string;
+    emptyPlaceholder?: boolean;
+}> = ({ value, className = '', emptyPlaceholder = false }) => {
+    if (!value) {
+        return emptyPlaceholder ? <span className="text-gray-400">—</span> : null;
+    }
+    return (
+        <span className={`block truncate ${className}`} title={value}>
+            {value}
+        </span>
+    );
+};
+
+// Chip component with truncation
+const ChipCell: React.FC<{ 
+    value: string; 
+    variant: 'green' | 'blue' | 'gray';
+}> = ({ value, variant }) => {
+    const colorClasses = {
+        green: 'bg-green-100 text-green-800',
+        blue: 'bg-blue-100 text-blue-800',
+        gray: 'bg-gray-100 text-gray-800',
+    };
+    return (
+        <span 
+            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium max-w-full ${colorClasses[variant]}`}
+            title={value}
+        >
+            <span className="truncate">{value}</span>
+        </span>
+    );
+};
+
 const columns = [
     // Core columns
     columnHelper.accessor('requestId', {
         header: 'Request #',
-        cell: (info) => <span className="font-medium text-gray-900">{info.getValue()}</span>,
+        cell: (info) => <TruncatedCell value={info.getValue()} className="font-medium text-gray-900" />,
         size: 140,
         minSize: 100,
     }),
     columnHelper.accessor('physician', {
         header: 'Physician',
-        cell: (info) => info.getValue(),
+        cell: (info) => <TruncatedCell value={info.getValue()} />,
         size: 180,
         minSize: 100,
     }),
     columnHelper.accessor('institution', {
         header: 'Institution',
-        cell: (info) => <span className="truncate max-w-[200px] block" title={info.getValue()}>{info.getValue()}</span>,
+        cell: (info) => <TruncatedCell value={info.getValue()} />,
         size: 220,
         minSize: 120,
     }),
     columnHelper.accessor('country', {
         header: 'Country',
-        cell: (info) => info.getValue(),
+        cell: (info) => <TruncatedCell value={info.getValue()} />,
         size: 140,
         minSize: 100,
     }),
     columnHelper.accessor('owner', {
         header: 'Owner',
-        cell: (info) => info.getValue(),
+        cell: (info) => <TruncatedCell value={info.getValue()} />,
         size: 180,
         minSize: 100,
     }),
     columnHelper.accessor('phase', {
         header: 'Phase',
-        cell: (info) => (
-            <span className="phase-chip">
-                {info.getValue()}
-            </span>
-        ),
+        cell: (info) => <ChipCell value={info.getValue()} variant="gray" />,
         size: 140,
         minSize: 100,
     }),
     columnHelper.accessor('comments', {
         header: 'Comments',
-        cell: (info) => {
-            const val = info.getValue();
-            return val ? <span className="text-blue-500 cursor-pointer hover:underline truncate max-w-[200px] block" title={val}>{val}</span> : null;
-        },
+        cell: (info) => <TruncatedCell value={info.getValue()} className="text-blue-500 cursor-pointer hover:underline" />,
         size: 200,
         minSize: 100,
     }),
@@ -128,38 +157,31 @@ const columns = [
     // Details columns
     columnHelper.accessor('product', {
         header: 'Product',
-        cell: (info) => info.getValue() || <span className="text-gray-400">—</span>,
+        cell: (info) => <TruncatedCell value={info.getValue()} emptyPlaceholder />,
         size: 160,
         minSize: 100,
     }),
     columnHelper.accessor('requestType', {
         header: 'Request type',
-        cell: (info) => (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                {info.getValue()}
-            </span>
-        ),
+        cell: (info) => <ChipCell value={info.getValue()} variant="green" />,
         size: 160,
         minSize: 120,
     }),
     columnHelper.accessor('fundingModel', {
         header: 'Funding model',
-        cell: (info) => info.getValue(),
+        cell: (info) => <TruncatedCell value={info.getValue()} />,
         size: 140,
         minSize: 100,
     }),
     columnHelper.accessor('receivedOn', {
         header: 'Received on',
-        cell: (info) => info.getValue(),
+        cell: (info) => <TruncatedCell value={info.getValue()} />,
         size: 120,
         minSize: 100,
     }),
     columnHelper.accessor('rationale', {
         header: 'Rationale',
-        cell: (info) => {
-            const val = info.getValue();
-            return val ? <span className="truncate max-w-[250px] block" title={val}>{val}</span> : <span className="text-gray-400">—</span>;
-        },
+        cell: (info) => <TruncatedCell value={info.getValue()} emptyPlaceholder />,
         size: 280,
         minSize: 150,
     }),
@@ -167,31 +189,25 @@ const columns = [
     // Identifiers columns
     columnHelper.accessor('patientInitials', {
         header: 'Patient initials',
-        cell: (info) => info.getValue() || <span className="text-gray-400">—</span>,
+        cell: (info) => <TruncatedCell value={info.getValue()} emptyPlaceholder />,
         size: 120,
         minSize: 80,
     }),
     columnHelper.accessor('patientNumber', {
         header: 'Patient number',
-        cell: (info) => <span className="font-mono text-sm">{info.getValue()}</span>,
+        cell: (info) => <TruncatedCell value={info.getValue()} className="font-mono text-sm" />,
         size: 140,
         minSize: 100,
     }),
     columnHelper.accessor('castorId', {
         header: 'Castor ID',
-        cell: (info) => {
-            const val = info.getValue();
-            return val ? <span className="font-mono text-sm">{val}</span> : <span className="text-gray-400">—</span>;
-        },
+        cell: (info) => <TruncatedCell value={info.getValue()} className="font-mono text-sm" emptyPlaceholder />,
         size: 120,
         minSize: 80,
     }),
     columnHelper.accessor('eapDossierNumber', {
         header: 'EAP dossier number',
-        cell: (info) => {
-            const val = info.getValue();
-            return val ? <span className="font-mono text-sm">{val}</span> : <span className="text-gray-400">—</span>;
-        },
+        cell: (info) => <TruncatedCell value={info.getValue()} className="font-mono text-sm" emptyPlaceholder />,
         size: 160,
         minSize: 100,
     }),
@@ -199,39 +215,38 @@ const columns = [
     // Physician details columns
     columnHelper.accessor('physicianEmail', {
         header: 'Physician email',
-        cell: (info) => (
-            <a href={`mailto:${info.getValue()}`} className="text-blue-600 hover:underline truncate max-w-[200px] block">
-                {info.getValue()}
-            </a>
-        ),
+        cell: (info) => {
+            const val = info.getValue();
+            return (
+                <a href={`mailto:${val}`} className="block truncate text-blue-600 hover:underline" title={val}>
+                    {val}
+                </a>
+            );
+        },
         size: 220,
         minSize: 150,
     }),
     columnHelper.accessor('physicianFirstName', {
         header: 'First name',
-        cell: (info) => info.getValue(),
+        cell: (info) => <TruncatedCell value={info.getValue()} />,
         size: 120,
         minSize: 80,
     }),
     columnHelper.accessor('physicianLastName', {
         header: 'Last name',
-        cell: (info) => info.getValue(),
+        cell: (info) => <TruncatedCell value={info.getValue()} />,
         size: 120,
         minSize: 80,
     }),
     columnHelper.accessor('physicianPhone', {
         header: 'Phone number',
-        cell: (info) => info.getValue(),
+        cell: (info) => <TruncatedCell value={info.getValue()} className="font-mono" />,
         size: 140,
         minSize: 100,
     }),
     columnHelper.accessor('physicianSpecialty', {
         header: 'Specialty',
-        cell: (info) => (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                {info.getValue()}
-            </span>
-        ),
+        cell: (info) => <ChipCell value={info.getValue()} variant="blue" />,
         size: 140,
         minSize: 100,
     }),
