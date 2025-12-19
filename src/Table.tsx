@@ -279,19 +279,6 @@ const MoreOptionsIcon = () => (
     </svg>
 );
 
-const DragHandleIcon = () => (
-    <svg className="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
-        <circle cx="9" cy="5" r="1.5" />
-        <circle cx="15" cy="5" r="1.5" />
-        <circle cx="9" cy="10" r="1.5" />
-        <circle cx="15" cy="10" r="1.5" />
-        <circle cx="9" cy="15" r="1.5" />
-        <circle cx="15" cy="15" r="1.5" />
-        <circle cx="9" cy="20" r="1.5" />
-        <circle cx="15" cy="20" r="1.5" />
-    </svg>
-);
-
 const EyeIcon = () => (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -333,6 +320,12 @@ const ChevronDownIcon = () => (
 const ColumnsIcon = () => (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+    </svg>
+);
+
+const ResetIcon = () => (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
     </svg>
 );
 
@@ -647,54 +640,56 @@ const HeaderCell: React.FC<HeaderCellProps> = ({
     return (
         <th
             ref={headerRef}
-            className={`relative px-4 py-3 text-xs font-bold text-gray-700 uppercase tracking-wider select-none group transition-colors duration-75 ${isBeingDragged ? 'opacity-50 bg-blue-50 scale-[0.98]' : ''} ${showHoverState ? 'bg-gray-100' : ''} ${isPinned ? 'bg-gray-100 sticky left-0 z-10 border-r-2 border-gray-300' : ''}`}
+            className={`relative px-4 py-3 text-xs font-bold text-gray-700 uppercase tracking-wider select-none group transition-colors duration-75 cursor-grab active:cursor-grabbing ${isBeingDragged ? 'opacity-50 bg-blue-50 scale-[0.98]' : ''} ${showHoverState ? 'bg-gray-100' : ''} ${isPinned ? 'bg-gray-100 sticky left-0 z-10 border-r-2 border-gray-300' : ''}`}
             style={{ 
                 width: header.getSize(),
             }}
+            draggable
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
         >
-            {/* Drag handle - absolutely positioned */}
-            <div
-                className={`absolute left-1 top-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing transition-opacity duration-75 z-10 ${showHoverState ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-                draggable
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-            >
-                <DragHandleIcon />
-            </div>
-
             <div className="flex items-center gap-1">
-                {/* Header content with sorting - shifts right on hover */}
-                <div
-                    className={`flex items-center gap-1.5 cursor-pointer flex-1 transition-transform duration-100 ease-out ${showHoverState ? 'translate-x-5' : 'translate-x-0'}`}
-                    onClick={header.column.getToggleSortingHandler()}
-                >
+                {/* Header content */}
+                <div className="flex items-center gap-1.5 flex-1">
                     <span>
                         {header.isPlaceholder
                             ? null
                             : flexRender(header.column.columnDef.header, header.getContext())}
                     </span>
-                    {/* Sorting indicator */}
-                    <span className="flex-shrink-0">
-                        {sortDirection === 'asc' ? (
-                            <SortAscIcon />
-                        ) : sortDirection === 'desc' ? (
-                            <SortDescIcon />
-                        ) : (
-                            <span className={`transition-opacity duration-75 ${showHoverState ? 'opacity-100' : 'opacity-0'}`}>
-                                <SortNeutralIcon />
-                            </span>
-                        )}
-                    </span>
                 </div>
+
+                {/* Sort button - stops drag propagation */}
+                <button
+                    className={`p-1 rounded hover:bg-gray-200 active:bg-gray-300 transition-all duration-75 flex-shrink-0 relative z-20 ${showHoverState || sortDirection ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        header.column.getToggleSortingHandler()?.(e);
+                    }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    draggable={false}
+                >
+                    {sortDirection === 'asc' ? (
+                        <SortAscIcon />
+                    ) : sortDirection === 'desc' ? (
+                        <SortDescIcon />
+                    ) : (
+                        <SortNeutralIcon />
+                    )}
+                </button>
 
                 {/* More options button */}
                 <button
                     className={`p-1 rounded hover:bg-gray-200 active:bg-gray-300 transition-all duration-75 flex-shrink-0 relative z-20 ${showHoverState ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-                    onClick={handleMenuClick}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleMenuClick(e);
+                    }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    draggable={false}
                 >
                     <MoreOptionsIcon />
                 </button>
@@ -858,14 +853,44 @@ export const Table: React.FC<TableProps> = ({ data }) => {
 
     const hiddenColumnCount = Object.values(columnVisibility).filter(v => v === false).length;
 
+    // Check if table has been modified from defaults
+    const defaultColumnOrder = columns.map(col => col.accessorKey as string);
+    const defaultVisibility = getDefaultVisibility();
+    
+    const isModified = 
+        sorting.length > 0 ||
+        JSON.stringify(columnOrder) !== JSON.stringify(defaultColumnOrder) ||
+        JSON.stringify(columnVisibility) !== JSON.stringify(defaultVisibility);
+
+    const handleReset = () => {
+        setSorting([]);
+        setColumnOrder(defaultColumnOrder);
+        setColumnVisibility(defaultVisibility);
+        setColumnSizing({});
+        setHasInitializedSizing(false);
+    };
+
     return (
         <div className="space-y-3">
-            {/* Toolbar with column visibility dropdown */}
-            <div className="flex items-center justify-between">
+            {/* Toolbar with column visibility dropdown and reset button */}
+            <div className="flex items-center gap-2">
                 <ColumnVisibilityDropdown
                     columns={table.getAllLeafColumns()}
                     hiddenCount={hiddenColumnCount}
                 />
+                <button
+                    onClick={handleReset}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors duration-75 ${
+                        isModified 
+                            ? 'text-gray-600 hover:text-gray-700 hover:bg-gray-100 active:bg-gray-200' 
+                            : 'text-gray-300 cursor-not-allowed'
+                    }`}
+                    title="Reset to default view"
+                    disabled={!isModified}
+                >
+                    <ResetIcon />
+                    Reset
+                </button>
             </div>
 
             {/* Table */}
