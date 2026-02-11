@@ -218,7 +218,7 @@ export const generateOrders = (requests: Request[], ordersPerRequest: number = 3
     let lastOrderDate: Date | null = null;
     
     for (let i = 0; i < orderCount; i++) {
-      const orderCreatedOn = lastOrderDate 
+      const orderCreatedOn: Date = lastOrderDate 
         ? faker.date.between({ from: lastOrderDate, to: new Date() })
         : faker.date.recent({ days: 180 });
       

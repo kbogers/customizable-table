@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Request, Order } from './mockData';
-import { requestTypes, fundingModels, specialties, orderStatuses, eapApprovalStatuses } from './mockData';
+import { requestTypes, fundingModels, specialties, orderStatuses } from './mockData';
 
 interface DetailsPanelProps {
   request: Request | null;
@@ -49,12 +49,6 @@ const InfoIcon = () => (
   </svg>
 );
 
-const ChevronUpIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-  </svg>
-);
-
 const ArrowBackIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -76,7 +70,7 @@ interface OrderDetailsViewProps {
   isClosing?: boolean;
 }
 
-const OrderDetailsView: React.FC<OrderDetailsViewProps> = ({ order, request, onBack, onSave, isClosing = false }) => {
+const OrderDetailsView: React.FC<OrderDetailsViewProps> = ({ order, request: _request, onBack, onSave, isClosing = false }) => {
   const [formData, setFormData] = React.useState<Order>(order);
 
   React.useEffect(() => {
@@ -917,7 +911,6 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
                   </div>
                 ) : (
                   requestOrders.map((order, index) => {
-                    const statusDate = order.order_delivered_on || order.order_shipped_on || order.order_approved_on || order.order_created_on;
                     const statusText = order.order_status === 'Delivered' && order.order_delivered_on
                       ? `Delivered ${order.order_delivered_on}`
                       : order.order_status === 'Shipped' && order.order_shipped_on
