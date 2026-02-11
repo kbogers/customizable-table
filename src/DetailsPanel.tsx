@@ -317,8 +317,8 @@ const OrderDetailsView: React.FC<OrderDetailsViewProps> = ({ order, request: _re
           onClick={handleSave}
           disabled={!hasChanges}
           className={`px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors ${hasChanges
-              ? 'bg-[#007c50] hover:bg-[#006640] cursor-pointer'
-              : 'bg-gray-300 cursor-not-allowed'
+            ? 'bg-[#007c50] hover:bg-[#006640] cursor-pointer'
+            : 'bg-gray-300 cursor-not-allowed'
             }`}
         >
           Save
@@ -475,8 +475,8 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
           <button
             onClick={() => setActiveTab('phases')}
             className={`px-4 py-4 text-sm font-semibold border-b-2 transition-colors ${activeTab === 'phases'
-                ? 'border-[#007c50] text-[#036240]'
-                : 'border-transparent text-[#666967]'
+              ? 'border-[#007c50] text-[#036240]'
+              : 'border-transparent text-[#666967]'
               }`}
           >
             Phases
@@ -484,8 +484,8 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
           <button
             onClick={() => setActiveTab('details')}
             className={`px-4 py-4 text-sm font-semibold border-b-2 transition-colors ${activeTab === 'details'
-                ? 'border-[#007c50] text-[#036240]'
-                : 'border-transparent text-[#666967]'
+              ? 'border-[#007c50] text-[#036240]'
+              : 'border-transparent text-[#666967]'
               }`}
           >
             Details
@@ -493,8 +493,8 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
           <button
             onClick={() => setActiveTab('orders')}
             className={`px-4 py-4 text-sm font-semibold border-b-2 transition-colors ${activeTab === 'orders'
-                ? 'border-[#007c50] text-[#036240]'
-                : 'border-transparent text-[#666967]'
+              ? 'border-[#007c50] text-[#036240]'
+              : 'border-transparent text-[#666967]'
               }`}
           >
             Orders
@@ -502,8 +502,8 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
           <button
             onClick={() => setActiveTab('documents')}
             className={`px-4 py-4 text-sm font-semibold border-b-2 transition-colors ${activeTab === 'documents'
-                ? 'border-[#007c50] text-[#036240]'
-                : 'border-transparent text-[#666967]'
+              ? 'border-[#007c50] text-[#036240]'
+              : 'border-transparent text-[#666967]'
               }`}
           >
             Documents
@@ -511,8 +511,8 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
           <button
             onClick={() => setActiveTab('comments')}
             className={`px-4 py-4 text-sm font-semibold border-b-2 transition-colors ${activeTab === 'comments'
-                ? 'border-[#007c50] text-[#036240]'
-                : 'border-transparent text-[#666967]'
+              ? 'border-[#007c50] text-[#036240]'
+              : 'border-transparent text-[#666967]'
               }`}
           >
             Comments
@@ -995,8 +995,8 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
               onClick={handleSave}
               disabled={!hasChanges}
               className={`px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors ${hasChanges
-                  ? 'bg-[#007c50] hover:bg-[#006640] cursor-pointer'
-                  : 'bg-gray-300 cursor-not-allowed'
+                ? 'bg-[#007c50] hover:bg-[#006640] cursor-pointer'
+                : 'bg-gray-300 cursor-not-allowed'
                 }`}
             >
               Save

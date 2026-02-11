@@ -874,14 +874,8 @@ export const Table: React.FC<TableProps> = ({ data, onRowClick }) => {
 
     const hiddenColumnCount = Object.values(columnVisibility).filter(v => v === false).length;
 
-    // Check if table has been modified from defaults
     const defaultColumnOrder = columns.map(col => col.accessorKey as string);
     const defaultVisibility = getDefaultVisibility();
-    
-    const _isModified = 
-        sorting.length > 0 ||
-        JSON.stringify(columnOrder) !== JSON.stringify(defaultColumnOrder) ||
-        JSON.stringify(columnVisibility) !== JSON.stringify(defaultVisibility);
 
     const handleReset = () => {
         setSorting([]);
