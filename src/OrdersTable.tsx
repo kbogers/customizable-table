@@ -6,49 +6,56 @@ import {
     getCoreRowModel,
     useReactTable,
     getSortedRowModel,
+    getGroupedRowModel,
+    getExpandedRowModel,
 } from '@tanstack/react-table';
-import type { SortingState, Column, Header, ColumnOrderState, VisibilityState, ColumnSizingState } from '@tanstack/react-table';
-import type { Request } from './mockData';
+import type { SortingState, Column, Header, ColumnOrderState, VisibilityState, ColumnSizingState, GroupingState } from '@tanstack/react-table';
+import type { Order, Request } from './mockData';
 
-const columnHelper = createColumnHelper<Request>();
+const columnHelper = createColumnHelper<Order>();
 
 // Column definitions with readable names and grouping
 interface ColumnConfigItem {
-    key: keyof Request;
+    key: keyof Order;
     label: string;
-    group: 'core' | 'details' | 'identifiers' | 'physician';
+    group: 'core' | 'customer' | 'patient' | 'planning' | 'order_data' | 'order_dates';
     defaultVisible: boolean;
 }
 
 const columnConfig: ColumnConfigItem[] = [
     // Core fields (visible by default)
     { key: 'requestId', label: 'Request #', group: 'core', defaultVisible: true },
-    { key: 'physician', label: 'Physician', group: 'core', defaultVisible: true },
-    { key: 'institution', label: 'Institution', group: 'core', defaultVisible: true },
-    { key: 'country', label: 'Country', group: 'core', defaultVisible: true },
-    { key: 'owner', label: 'Owner', group: 'core', defaultVisible: true },
-    { key: 'phase', label: 'Phase', group: 'core', defaultVisible: true },
-    { key: 'comments', label: 'Comments', group: 'core', defaultVisible: true },
+    { key: 'order_number', label: 'Order #', group: 'core', defaultVisible: true },
+    { key: 'order_status', label: 'Order Status', group: 'core', defaultVisible: true },
+    { key: 'quantity', label: 'Quantity', group: 'core', defaultVisible: true },
+    { key: 'weeks_ordered', label: 'Weeks Ordered', group: 'core', defaultVisible: true },
 
-    // Details fields (hidden by default)
-    { key: 'product', label: 'Product', group: 'details', defaultVisible: false },
-    { key: 'requestType', label: 'Request type', group: 'details', defaultVisible: false },
-    { key: 'fundingModel', label: 'Funding model', group: 'details', defaultVisible: false },
-    { key: 'receivedOn', label: 'Received on', group: 'details', defaultVisible: false },
-    { key: 'rationale', label: 'Rationale', group: 'details', defaultVisible: false },
+    // Customer fields (hidden by default)
+    { key: 'customer_order_number', label: 'Customer Order #', group: 'customer', defaultVisible: false },
+    { key: 'customer_party_id', label: 'Customer Party ID', group: 'customer', defaultVisible: false },
+    { key: 'customer_party_name', label: 'Customer Party Name', group: 'customer', defaultVisible: false },
+    { key: 'customer_party_address', label: 'Customer Party Address', group: 'customer', defaultVisible: false },
 
-    // Identifiers (hidden by default)
-    { key: 'patientInitials', label: 'Patient initials', group: 'identifiers', defaultVisible: false },
-    { key: 'patientNumber', label: 'Patient number', group: 'identifiers', defaultVisible: false },
-    { key: 'castorId', label: 'Castor ID', group: 'identifiers', defaultVisible: false },
-    { key: 'eapDossierNumber', label: 'EAP dossier number', group: 'identifiers', defaultVisible: false },
+    // Patient fields (hidden by default)
+    { key: 'eap_dossier_number', label: 'EAP Dossier Number', group: 'patient', defaultVisible: false },
+    { key: 'eap_dossier_approval_status', label: 'EAP Approval Status', group: 'patient', defaultVisible: false },
+    { key: 'eap_dossier_date_of_approval', label: 'EAP Approval Date', group: 'patient', defaultVisible: false },
 
-    // Physician details (hidden by default)
-    { key: 'physicianEmail', label: 'Physician email', group: 'physician', defaultVisible: false },
-    { key: 'physicianFirstName', label: 'Physician first name', group: 'physician', defaultVisible: false },
-    { key: 'physicianLastName', label: 'Physician last name', group: 'physician', defaultVisible: false },
-    { key: 'physicianPhone', label: 'Phone number', group: 'physician', defaultVisible: false },
-    { key: 'physicianSpecialty', label: 'Specialty', group: 'physician', defaultVisible: false },
+    // Order planning fields (hidden by default)
+    { key: 'order_reminder_date', label: 'Order Reminder Date', group: 'planning', defaultVisible: false },
+    { key: 'next_order_expected_date', label: 'Next Order Expected Date', group: 'planning', defaultVisible: false },
+
+    // Order data fields (some visible, some hidden)
+    { key: 'status_updated_at', label: 'Status Updated At', group: 'order_data', defaultVisible: false },
+    { key: 'order_tracking_number', label: 'Tracking Number', group: 'order_data', defaultVisible: false },
+    { key: 'shipment_order_number', label: 'Shipment Order #', group: 'order_data', defaultVisible: false },
+
+    // Order dates (hidden by default)
+    { key: 'order_received_on', label: 'Order Received On', group: 'order_dates', defaultVisible: false },
+    { key: 'order_created_on', label: 'Order Created On', group: 'order_dates', defaultVisible: false },
+    { key: 'order_approved_on', label: 'Order Approved On', group: 'order_dates', defaultVisible: false },
+    { key: 'order_shipped_on', label: 'Order Shipped On', group: 'order_dates', defaultVisible: false },
+    { key: 'order_delivered_on', label: 'Order Delivered On', group: 'order_dates', defaultVisible: false },
 ];
 
 const getColumnLabel = (columnId: string): string => {
@@ -68,22 +75,24 @@ const getDefaultVisibility = (): VisibilityState => {
 
 const groupLabels: Record<string, string> = {
     core: 'Core fields',
-    details: 'Request details',
-    identifiers: 'Identifiers',
-    physician: 'Physician details',
+    customer: 'Customer data',
+    patient: 'Patient data',
+    planning: 'Order planning',
+    order_data: 'Order data',
+    order_dates: 'Order dates',
 };
 
 // Truncated cell component with tooltip
 const TruncatedCell: React.FC<{ 
-    value: string | null | undefined; 
+    value: string | number | null | undefined; 
     className?: string;
     emptyPlaceholder?: boolean;
 }> = ({ value, className = '', emptyPlaceholder = false }) => {
-    if (!value) {
+    if (value === null || value === undefined || value === '') {
         return emptyPlaceholder ? <span className="text-gray-400">—</span> : null;
     }
     return (
-        <span className={`block truncate ${className}`} title={value}>
+        <span className={`block truncate ${className}`} title={String(value)}>
             {value}
         </span>
     );
@@ -92,12 +101,14 @@ const TruncatedCell: React.FC<{
 // Chip component with truncation
 const ChipCell: React.FC<{ 
     value: string; 
-    variant: 'green' | 'blue' | 'gray';
+    variant: 'green' | 'blue' | 'gray' | 'yellow' | 'red';
 }> = ({ value, variant }) => {
     const colorClasses = {
         green: 'bg-green-100 text-green-800',
         blue: 'bg-blue-100 text-blue-800',
         gray: 'bg-gray-100 text-gray-800',
+        yellow: 'bg-yellow-100 text-yellow-800',
+        red: 'bg-red-100 text-red-800',
     };
     return (
         <span 
@@ -109,6 +120,40 @@ const ChipCell: React.FC<{
     );
 };
 
+const getStatusVariant = (status: string): 'green' | 'blue' | 'gray' | 'yellow' | 'red' => {
+    switch (status) {
+        case 'Delivered':
+            return 'green';
+        case 'Shipped':
+            return 'blue';
+        case 'Approved':
+            return 'green';
+        case 'Pending':
+            return 'yellow';
+        case 'On Hold':
+            return 'gray';
+        case 'Cancelled':
+            return 'red';
+        default:
+            return 'gray';
+    }
+};
+
+const getEAPStatusVariant = (status: string): 'green' | 'blue' | 'gray' | 'yellow' | 'red' => {
+    switch (status) {
+        case 'Approved':
+            return 'green';
+        case 'Pending':
+            return 'yellow';
+        case 'Under Review':
+            return 'blue';
+        case 'Rejected':
+            return 'red';
+        default:
+            return 'gray';
+    }
+};
+
 const columns = [
     // Core columns
     columnHelper.accessor('requestId', {
@@ -117,142 +162,145 @@ const columns = [
         size: 140,
         minSize: 100,
     }),
-    columnHelper.accessor('physician', {
-        header: 'Physician',
-        cell: (info) => <TruncatedCell value={info.getValue()} />,
-        size: 180,
+    columnHelper.accessor('order_number', {
+        header: 'Order #',
+        cell: (info) => <TruncatedCell value={info.getValue()} className="font-medium text-gray-900" />,
+        size: 140,
         minSize: 100,
     }),
-    columnHelper.accessor('institution', {
-        header: 'Institution',
+    columnHelper.accessor('order_status', {
+        header: 'Order Status',
+        cell: (info) => <ChipCell value={info.getValue()} variant={getStatusVariant(info.getValue())} />,
+        size: 140,
+        minSize: 100,
+    }),
+    columnHelper.accessor('quantity', {
+        header: 'Quantity',
         cell: (info) => <TruncatedCell value={info.getValue()} />,
-        size: 220,
+        size: 100,
+        minSize: 80,
+    }),
+    columnHelper.accessor('weeks_ordered', {
+        header: 'Weeks Ordered',
+        cell: (info) => <TruncatedCell value={info.getValue()} />,
+        size: 120,
+        minSize: 100,
+    }),
+
+    // Customer columns
+    columnHelper.accessor('customer_order_number', {
+        header: 'Customer Order #',
+        cell: (info) => <TruncatedCell value={info.getValue()} className="font-mono text-sm" emptyPlaceholder />,
+        size: 160,
         minSize: 120,
     }),
-    columnHelper.accessor('country', {
-        header: 'Country',
-        cell: (info) => <TruncatedCell value={info.getValue()} />,
-        size: 140,
-        minSize: 100,
+    columnHelper.accessor('customer_party_id', {
+        header: 'Customer Party ID',
+        cell: (info) => <TruncatedCell value={info.getValue()} className="font-mono text-sm" emptyPlaceholder />,
+        size: 150,
+        minSize: 120,
     }),
-    columnHelper.accessor('owner', {
-        header: 'Owner',
-        cell: (info) => <TruncatedCell value={info.getValue()} />,
-        size: 180,
-        minSize: 100,
-    }),
-    columnHelper.accessor('phase', {
-        header: 'Phase',
-        cell: (info) => <ChipCell value={info.getValue()} variant="gray" />,
-        size: 140,
-        minSize: 100,
-    }),
-    columnHelper.accessor('comments', {
-        header: 'Comments',
-        cell: (info) => <TruncatedCell value={info.getValue()} className="text-blue-500 cursor-pointer hover:underline" />,
+    columnHelper.accessor('customer_party_name', {
+        header: 'Customer Party Name',
+        cell: (info) => <TruncatedCell value={info.getValue()} emptyPlaceholder />,
         size: 200,
-        minSize: 100,
+        minSize: 150,
+    }),
+    columnHelper.accessor('customer_party_address', {
+        header: 'Customer Party Address',
+        cell: (info) => <TruncatedCell value={info.getValue()} emptyPlaceholder />,
+        size: 250,
+        minSize: 200,
     }),
 
-    // Details columns
-    columnHelper.accessor('product', {
-        header: 'Product',
-        cell: (info) => <TruncatedCell value={info.getValue()} emptyPlaceholder />,
-        size: 160,
-        minSize: 100,
-    }),
-    columnHelper.accessor('requestType', {
-        header: 'Request type',
-        cell: (info) => <ChipCell value={info.getValue()} variant="green" />,
+    // Patient columns
+    columnHelper.accessor('eap_dossier_number', {
+        header: 'EAP Dossier Number',
+        cell: (info) => <TruncatedCell value={info.getValue()} className="font-mono text-sm" emptyPlaceholder />,
         size: 160,
         minSize: 120,
     }),
-    columnHelper.accessor('fundingModel', {
-        header: 'Funding model',
-        cell: (info) => <TruncatedCell value={info.getValue()} />,
-        size: 140,
-        minSize: 100,
-    }),
-    columnHelper.accessor('receivedOn', {
-        header: 'Received on',
-        cell: (info) => <TruncatedCell value={info.getValue()} />,
-        size: 120,
-        minSize: 100,
-    }),
-    columnHelper.accessor('rationale', {
-        header: 'Rationale',
-        cell: (info) => <TruncatedCell value={info.getValue()} emptyPlaceholder />,
-        size: 280,
-        minSize: 150,
-    }),
-
-    // Identifiers columns
-    columnHelper.accessor('patientInitials', {
-        header: 'Patient initials',
-        cell: (info) => <TruncatedCell value={info.getValue()} emptyPlaceholder />,
-        size: 120,
-        minSize: 80,
-    }),
-    columnHelper.accessor('patientNumber', {
-        header: 'Patient number',
-        cell: (info) => <TruncatedCell value={info.getValue()} className="font-mono text-sm" />,
-        size: 140,
-        minSize: 100,
-    }),
-    columnHelper.accessor('castorId', {
-        header: 'Castor ID',
-        cell: (info) => <TruncatedCell value={info.getValue()} className="font-mono text-sm" emptyPlaceholder />,
-        size: 120,
-        minSize: 80,
-    }),
-    columnHelper.accessor('eapDossierNumber', {
-        header: 'EAP dossier number',
-        cell: (info) => <TruncatedCell value={info.getValue()} className="font-mono text-sm" emptyPlaceholder />,
+    columnHelper.accessor('eap_dossier_approval_status', {
+        header: 'EAP Approval Status',
+        cell: (info) => <ChipCell value={info.getValue()} variant={getEAPStatusVariant(info.getValue())} />,
         size: 160,
-        minSize: 100,
+        minSize: 120,
     }),
-
-    // Physician details columns
-    columnHelper.accessor('physicianEmail', {
-        header: 'Physician email',
-        cell: (info) => {
-            const val = info.getValue();
-            return (
-                <a href={`mailto:${val}`} className="block truncate text-blue-600 hover:underline" title={val}>
-                    {val}
-                </a>
-            );
-        },
-        size: 220,
-        minSize: 150,
-    }),
-    columnHelper.accessor('physicianFirstName', {
-        header: 'First name',
-        cell: (info) => <TruncatedCell value={info.getValue()} />,
-        size: 120,
-        minSize: 80,
-    }),
-    columnHelper.accessor('physicianLastName', {
-        header: 'Last name',
-        cell: (info) => <TruncatedCell value={info.getValue()} />,
-        size: 120,
-        minSize: 80,
-    }),
-    columnHelper.accessor('physicianPhone', {
-        header: 'Phone number',
-        cell: (info) => <TruncatedCell value={info.getValue()} className="font-mono" />,
+    columnHelper.accessor('eap_dossier_date_of_approval', {
+        header: 'EAP Approval Date',
+        cell: (info) => <TruncatedCell value={info.getValue()} emptyPlaceholder />,
         size: 140,
         minSize: 100,
     }),
-    columnHelper.accessor('physicianSpecialty', {
-        header: 'Specialty',
-        cell: (info) => <ChipCell value={info.getValue()} variant="blue" />,
+
+    // Order planning columns
+    columnHelper.accessor('order_reminder_date', {
+        header: 'Order Reminder Date',
+        cell: (info) => <TruncatedCell value={info.getValue()} emptyPlaceholder />,
+        size: 160,
+        minSize: 120,
+    }),
+    columnHelper.accessor('next_order_expected_date', {
+        header: 'Next Order Expected Date',
+        cell: (info) => <TruncatedCell value={info.getValue()} emptyPlaceholder />,
+        size: 180,
+        minSize: 150,
+    }),
+
+    // Order data columns
+    columnHelper.accessor('status_updated_at', {
+        header: 'Status Updated At',
+        cell: (info) => <TruncatedCell value={info.getValue()} emptyPlaceholder />,
+        size: 140,
+        minSize: 100,
+    }),
+    columnHelper.accessor('order_tracking_number', {
+        header: 'Tracking Number',
+        cell: (info) => <TruncatedCell value={info.getValue()} className="font-mono text-sm" emptyPlaceholder />,
+        size: 150,
+        minSize: 120,
+    }),
+    columnHelper.accessor('shipment_order_number', {
+        header: 'Shipment Order #',
+        cell: (info) => <TruncatedCell value={info.getValue()} className="font-mono text-sm" emptyPlaceholder />,
+        size: 150,
+        minSize: 120,
+    }),
+
+    // Order dates columns
+    columnHelper.accessor('order_received_on', {
+        header: 'Order Received On',
+        cell: (info) => <TruncatedCell value={info.getValue()} emptyPlaceholder />,
+        size: 140,
+        minSize: 100,
+    }),
+    columnHelper.accessor('order_created_on', {
+        header: 'Order Created On',
+        cell: (info) => <TruncatedCell value={info.getValue()} emptyPlaceholder />,
+        size: 140,
+        minSize: 100,
+    }),
+    columnHelper.accessor('order_approved_on', {
+        header: 'Order Approved On',
+        cell: (info) => <TruncatedCell value={info.getValue()} emptyPlaceholder />,
+        size: 140,
+        minSize: 100,
+    }),
+    columnHelper.accessor('order_shipped_on', {
+        header: 'Order Shipped On',
+        cell: (info) => <TruncatedCell value={info.getValue()} emptyPlaceholder />,
+        size: 140,
+        minSize: 100,
+    }),
+    columnHelper.accessor('order_delivered_on', {
+        header: 'Order Delivered On',
+        cell: (info) => <TruncatedCell value={info.getValue()} emptyPlaceholder />,
         size: 140,
         minSize: 100,
     }),
 ];
 
-// Icons as components
+// Icons (reusing from Table.tsx)
 const SortAscIcon = () => (
     <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 19V5m0 0l-5 5m5-5l5 5" />
@@ -317,6 +365,12 @@ const ChevronDownIcon = () => (
     </svg>
 );
 
+const ChevronRightIcon = () => (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+    </svg>
+);
+
 const ColumnsIcon = () => (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
@@ -347,10 +401,16 @@ const CalendarViewWeekIcon = () => (
     </svg>
 );
 
+const GroupIcon = () => (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+    </svg>
+);
+
 // Column Menu Component
 interface ColumnMenuProps {
-    column: Column<Request, unknown>;
-    allColumns: Column<Request, unknown>[];
+    column: Column<Order, unknown>;
+    allColumns: Column<Order, unknown>[];
     onClose: () => void;
     position: { top: number; left: number };
 }
@@ -435,11 +495,13 @@ const ColumnMenu: React.FC<ColumnMenuProps> = ({ column, allColumns, onClose, po
 
 // Column Visibility Dropdown
 interface ColumnVisibilityDropdownProps {
-    columns: Column<Request, unknown>[];
+    columns: Column<Order, unknown>[];
     hiddenCount: number;
+    isGroupedByRequest?: boolean;
+    onToggleGroupByRequest?: () => void;
 }
 
-const ColumnVisibilityDropdown: React.FC<ColumnVisibilityDropdownProps> = ({ columns, hiddenCount }) => {
+const ColumnVisibilityDropdown: React.FC<ColumnVisibilityDropdownProps> = ({ columns, hiddenCount, isGroupedByRequest, onToggleGroupByRequest }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -455,11 +517,13 @@ const ColumnVisibilityDropdown: React.FC<ColumnVisibilityDropdownProps> = ({ col
 
     // Group columns by their group
     const groupedColumns = useMemo(() => {
-        const groups: Record<string, Column<Request, unknown>[]> = {
+        const groups: Record<string, Column<Order, unknown>[]> = {
             core: [],
-            details: [],
-            identifiers: [],
-            physician: [],
+            customer: [],
+            patient: [],
+            planning: [],
+            order_data: [],
+            order_dates: [],
         };
 
         columns.forEach(column => {
@@ -486,6 +550,24 @@ const ColumnVisibilityDropdown: React.FC<ColumnVisibilityDropdownProps> = ({ col
             </button>
             {isOpen && (
                 <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-[1000] min-w-[260px] max-h-[400px] overflow-y-auto">
+                    {/* Group by Request toggle */}
+                    {onToggleGroupByRequest && (
+                        <>
+                            <button
+                                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 active:bg-gray-100 flex items-center justify-between"
+                                onClick={onToggleGroupByRequest}
+                            >
+                                <span className="flex items-center gap-2">
+                                    <GroupIcon />
+                                    Group by Request
+                                </span>
+                                <span className={`w-8 h-5 rounded-full relative transition-colors ${isGroupedByRequest ? 'bg-[#007c50]' : 'bg-gray-300'}`}>
+                                    <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${isGroupedByRequest ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
+                                </span>
+                            </button>
+                            <div className="h-px bg-gray-200 my-1" />
+                        </>
+                    )}
                     {Object.entries(groupedColumns).map(([group, cols]) => (
                         <div key={group}>
                             <div className="px-4 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50">
@@ -555,7 +637,7 @@ const calculatePreviewOrder = (
 
 // Header Cell Component
 interface HeaderCellProps {
-    header: Header<Request, unknown>;
+    header: Header<Order, unknown>;
     columnOrder: ColumnOrderState;
     setColumnOrder: React.Dispatch<React.SetStateAction<ColumnOrderState>>;
     dragState: DragState;
@@ -566,7 +648,7 @@ interface HeaderCellProps {
     isDragging: boolean;
     resizingColumnId: string | null;
     setResizingColumnId: React.Dispatch<React.SetStateAction<string | null>>;
-    allColumns: Column<Request, unknown>[];
+    allColumns: Column<Order, unknown>[];
 }
 
 const HeaderCell: React.FC<HeaderCellProps> = ({ 
@@ -755,17 +837,19 @@ const HeaderCell: React.FC<HeaderCellProps> = ({
     );
 };
 
-interface TableProps {
-    data: Request[];
-    onRowClick?: (request: Request) => void;
+interface OrdersTableProps {
+    data: Order[];
+    requests?: Request[];
+    onRowClick?: (order: Order) => void;
 }
 
-export const Table: React.FC<TableProps> = ({ data, onRowClick }) => {
+export const OrdersTable: React.FC<OrdersTableProps> = ({ data, requests = [], onRowClick }) => {
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(getDefaultVisibility);
     const [columnOrder, setColumnOrder] = useState<ColumnOrderState>(
         columns.map(col => col.accessorKey as string)
     );
+    const [grouping, setGrouping] = useState<GroupingState>([]);
     const [dragState, setDragState] = useState<DragState>({
         draggedColumnId: null,
         targetColumnId: null,
@@ -781,6 +865,13 @@ export const Table: React.FC<TableProps> = ({ data, onRowClick }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const toolbarPortal = document.getElementById('table-toolbar-portal');
+
+    // Build a lookup map from requestId to request for group headers
+    const requestMap = useMemo(() => {
+        const map: Record<string, Request> = {};
+        requests.forEach(req => { map[req.requestId] = req; });
+        return map;
+    }, [requests]);
 
     // Keyboard shortcut for search (⌘K)
     useEffect(() => {
@@ -865,6 +956,8 @@ export const Table: React.FC<TableProps> = ({ data, onRowClick }) => {
     // Use preview order when dragging, otherwise use actual order
     const displayOrder = isDragging ? previewOrder : columnOrder;
 
+    const [expanded, setExpanded] = useState<true | Record<string, boolean>>(true);
+
     const table = useReactTable({
         data,
         columns,
@@ -873,15 +966,22 @@ export const Table: React.FC<TableProps> = ({ data, onRowClick }) => {
             columnVisibility,
             columnOrder: displayOrder,
             columnSizing,
+            grouping,
+            expanded,
         },
+        onExpandedChange: setExpanded,
         onSortingChange: setSorting,
         onColumnVisibilityChange: setColumnVisibility,
         onColumnOrderChange: setColumnOrder,
         onColumnSizingChange: setColumnSizing,
+        onGroupingChange: setGrouping,
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
+        getGroupedRowModel: getGroupedRowModel(),
+        getExpandedRowModel: getExpandedRowModel(),
         columnResizeMode: 'onChange',
         enableColumnResizing: true,
+        enableGrouping: true,
     });
 
     const hiddenColumnCount = Object.values(columnVisibility).filter(v => v === false).length;
@@ -893,15 +993,27 @@ export const Table: React.FC<TableProps> = ({ data, onRowClick }) => {
     const isModified = 
         sorting.length > 0 ||
         JSON.stringify(columnOrder) !== JSON.stringify(defaultColumnOrder) ||
-        JSON.stringify(columnVisibility) !== JSON.stringify(defaultVisibility);
+        JSON.stringify(columnVisibility) !== JSON.stringify(defaultVisibility) ||
+        grouping.length > 0;
 
     const handleReset = () => {
         setSorting([]);
         setColumnOrder(defaultColumnOrder);
         setColumnVisibility(defaultVisibility);
         setColumnSizing({});
+        setGrouping([]);
         setHasInitializedSizing(false);
     };
+
+    const toggleGroupByRequest = () => {
+        if (grouping.includes('requestId')) {
+            setGrouping([]);
+        } else {
+            setGrouping(['requestId']);
+        }
+    };
+
+    const isGroupedByRequest = grouping.includes('requestId');
 
     return (
         <div className="space-y-0">
@@ -916,9 +1028,10 @@ export const Table: React.FC<TableProps> = ({ data, onRowClick }) => {
                             className="h-10 pl-3 pr-12 text-[15px] font-normal text-gray-900 bg-white border border-gray-400 rounded-lg hover:bg-gray-50 transition-colors appearance-none cursor-pointer w-[170px]"
                         >
                             <option value="all">Status: All</option>
-                            <option value="active">Status: Active</option>
+                            <option value="delivered">Status: Delivered</option>
+                            <option value="shipped">Status: Shipped</option>
                             <option value="pending">Status: Pending</option>
-                            <option value="completed">Status: Completed</option>
+                            <option value="cancelled">Status: Cancelled</option>
                         </select>
                         <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                             <ChevronDownIcon />
@@ -929,6 +1042,8 @@ export const Table: React.FC<TableProps> = ({ data, onRowClick }) => {
                     <ColumnVisibilityDropdown
                         columns={table.getAllLeafColumns()}
                         hiddenCount={hiddenColumnCount}
+                        isGroupedByRequest={isGroupedByRequest}
+                        onToggleGroupByRequest={toggleGroupByRequest}
                     />
 
                     {/* Search input */}
@@ -941,7 +1056,7 @@ export const Table: React.FC<TableProps> = ({ data, onRowClick }) => {
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Search for requests"
+                            placeholder="Search for orders"
                             className="h-10 w-full pl-11 pr-16 text-[15px] font-normal text-gray-900 placeholder-gray-500 bg-white border border-gray-400 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-green-600 transition-colors"
                         />
                         <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none">
@@ -995,28 +1110,89 @@ export const Table: React.FC<TableProps> = ({ data, onRowClick }) => {
                         ))}
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                        {table.getRowModel().rows.map((row) => (
-                            <tr
-                                key={row.id}
-                                className={`hover:bg-gray-50 group/row ${onRowClick ? 'cursor-pointer' : ''}`}
-                                onClick={() => onRowClick?.(row.original)}
-                            >
-                                {row.getVisibleCells().map((cell) => {
-                                    const isPinned = cell.column.getIsPinned();
-                                    return (
+                        {table.getRowModel().rows.map((row) => {
+                            if (row.getIsGrouped()) {
+                                // Group header row
+                                const visibleColumnCount = table.getAllLeafColumns().filter(col => col.getIsVisible()).length;
+                                const requestId = String(row.groupingValue);
+                                const request = requestMap[requestId];
+                                return (
+                                    <tr key={row.id} className="bg-gray-50 hover:bg-gray-100 border-t border-gray-200">
                                         <td
-                                            key={cell.id}
-                                            className={`px-4 py-4 text-sm text-gray-600 whitespace-nowrap ${
-                                                dragState.draggedColumnId === cell.column.id ? 'opacity-50 bg-blue-50' : ''
-                                            } ${isPinned ? 'bg-white sticky left-0 z-10 border-r-2 border-gray-300 group-hover/row:bg-gray-50' : ''}`}
-                                            style={{ width: cell.column.getSize() }}
+                                            colSpan={visibleColumnCount}
+                                            className="px-4 py-2.5 text-sm text-gray-700"
                                         >
-                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={row.getToggleExpandedHandler()}
+                                                    className="p-1 hover:bg-gray-200 rounded flex-shrink-0"
+                                                >
+                                                    {row.getIsExpanded() ? (
+                                                        <ChevronDownIcon />
+                                                    ) : (
+                                                        <ChevronRightIcon />
+                                                    )}
+                                                </button>
+                                                <span className="font-semibold">
+                                                    {requestId}
+                                                </span>
+                                                <span className="text-gray-400 text-xs">
+                                                    {row.subRows.length} {row.subRows.length === 1 ? 'order' : 'orders'}
+                                                </span>
+                                                {request && (
+                                                    <span className="flex items-center gap-3 ml-3 text-xs text-gray-400">
+                                                        <span className="truncate max-w-[140px]" title={request.physician}>{request.physician}</span>
+                                                        <span className="text-gray-300">·</span>
+                                                        <span className="truncate max-w-[160px]" title={request.institution}>{request.institution}</span>
+                                                        <span className="text-gray-300">·</span>
+                                                        <span>{request.country}</span>
+                                                        <span className="text-gray-300">·</span>
+                                                        <span className="text-gray-500 font-medium">{request.phase}</span>
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
-                                    );
-                                })}
-                            </tr>
-                        ))}
+                                    </tr>
+                                );
+                            }
+                            
+                            // Regular data row (only show if parent is expanded or not grouped)
+                            if (row.getParentRow() && !row.getParentRow()?.getIsExpanded()) {
+                                return null;
+                            }
+                            
+                            // Only make rows clickable if they have original data and onRowClick is provided
+                            const orderData = row.original as Order | undefined;
+                            const isClickable = onRowClick && orderData;
+                            
+                            return (
+                                <tr
+                                    key={row.id}
+                                    className={`hover:bg-gray-50 group/row ${isClickable ? 'cursor-pointer' : ''}`}
+                                    onClick={(e) => {
+                                        if (!isClickable) return;
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        onRowClick(orderData);
+                                    }}
+                                >
+                                    {row.getVisibleCells().map((cell) => {
+                                        const isPinned = cell.column.getIsPinned();
+                                        return (
+                                            <td
+                                                key={cell.id}
+                                                className={`px-4 py-4 text-sm text-gray-600 whitespace-nowrap ${
+                                                    dragState.draggedColumnId === cell.column.id ? 'opacity-50 bg-blue-50' : ''
+                                                } ${isPinned ? 'bg-white sticky left-0 z-10 border-r-2 border-gray-300 group-hover/row:bg-gray-50' : ''}`}
+                                                style={{ width: cell.column.getSize() }}
+                                            >
+                                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                            </td>
+                                        );
+                                    })}
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>

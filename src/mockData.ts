@@ -31,7 +31,7 @@ export interface Request {
   physicianSpecialty: 'Cardiology' | 'Oncology' | 'Neurology' | 'Pediatrics' | 'Internal Medicine' | 'Surgery' | 'Psychiatry' | 'Dermatology' | 'Endocrinology' | 'Gastroenterology';
 }
 
-const specialties = [
+export const specialties = [
   'Cardiology',
   'Oncology',
   'Neurology',
@@ -44,14 +44,14 @@ const specialties = [
   'Gastroenterology',
 ] as const;
 
-const requestTypes = [
+export const requestTypes = [
   'Expanded access',
   'Compassionate use',
   'Named patient',
   'Pre-approval access',
 ] as const;
 
-const fundingModels = [
+export const fundingModels = [
   'Free of charge',
   'Cost recovery',
   'Full price',
@@ -131,4 +131,159 @@ export const generateData = (count: number): Request[] => {
     });
   }
   return data;
+};
+
+// Order interface
+export interface Order {
+  // Link to request
+  requestId: string;
+
+  // CUSTOMER data
+  customer_order_number: string;
+  customer_party_id: string;
+  customer_party_name: string;
+  customer_party_address: string;
+
+  // PATIENT data
+  eap_dossier_number: string;
+  eap_dossier_approval_status: 'Approved' | 'Pending' | 'Rejected' | 'Under Review';
+  eap_dossier_date_of_approval: string;
+
+  // Order planning data (calculated by system)
+  order_reminder_date: string;
+  next_order_expected_date: string;
+
+  // ORDER DATA - Identifiers
+  order_number: string;
+  order_status: 'Pending' | 'Approved' | 'Shipped' | 'Delivered' | 'Cancelled' | 'On Hold';
+  status_updated_at: string;
+  order_tracking_number: string;
+  quantity: number;
+  weeks_ordered: number;
+  shipment_order_number: string;
+
+  // ORDER DATA - Dates
+  order_received_on: string;
+  order_created_on: string;
+  order_approved_on: string;
+  order_shipped_on: string;
+  order_delivered_on: string;
+
+  // Source
+  source: 'kinaxis' | 'manual';
+}
+
+export const orderStatuses: Order['order_status'][] = [
+  'Pending',
+  'Approved',
+  'Shipped',
+  'Delivered',
+  'Cancelled',
+  'On Hold',
+];
+
+export const eapApprovalStatuses: Order['eap_dossier_approval_status'][] = [
+  'Approved',
+  'Pending',
+  'Rejected',
+  'Under Review',
+];
+
+// Helper function to calculate dates
+const calculateReminderDate = (lastOrderDate: Date | null, weeksOrdered: number): Date => {
+  if (!lastOrderDate) {
+    return faker.date.future({ years: 1 });
+  }
+  const reminderDate = new Date(lastOrderDate);
+  reminderDate.setDate(reminderDate.getDate() + (weeksOrdered * 7) - 7); // 1 week before next order
+  return reminderDate;
+};
+
+const calculateNextOrderDate = (lastOrderDate: Date | null, weeksOrdered: number): Date => {
+  if (!lastOrderDate) {
+    return faker.date.future({ years: 1 });
+  }
+  const nextDate = new Date(lastOrderDate);
+  nextDate.setDate(nextDate.getDate() + (weeksOrdered * 7));
+  return nextDate;
+};
+
+export const generateOrders = (requests: Request[], ordersPerRequest: number = 3): Order[] => {
+  const orders: Order[] = [];
+  
+  requests.forEach((request) => {
+    // Each request can have 0 to several orders
+    const orderCount = Math.floor(Math.random() * (ordersPerRequest + 1));
+    
+    let lastOrderDate: Date | null = null;
+    
+    for (let i = 0; i < orderCount; i++) {
+      const orderCreatedOn = lastOrderDate 
+        ? faker.date.between({ from: lastOrderDate, to: new Date() })
+        : faker.date.recent({ days: 180 });
+      
+      const weeksOrdered = faker.number.int({ min: 2, max: 12 });
+      const orderReminderDate = calculateReminderDate(lastOrderDate, weeksOrdered);
+      const nextOrderExpectedDate = calculateNextOrderDate(orderCreatedOn, weeksOrdered);
+      
+      const orderStatus = faker.helpers.arrayElement(orderStatuses);
+      const orderApprovedOn = orderStatus !== 'Pending' 
+        ? faker.date.between({ from: orderCreatedOn, to: new Date() })
+        : '';
+      const orderShippedOn = ['Shipped', 'Delivered'].includes(orderStatus)
+        ? faker.date.between({ from: orderApprovedOn || orderCreatedOn, to: new Date() })
+        : '';
+      const orderDeliveredOn = orderStatus === 'Delivered'
+        ? faker.date.between({ from: orderShippedOn || orderCreatedOn, to: new Date() })
+        : '';
+      
+      const eapApprovalDate = faker.helpers.arrayElement(eapApprovalStatuses) === 'Approved'
+        ? faker.date.past({ years: 1 }).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+        : '';
+
+      orders.push({
+        requestId: request.requestId,
+        
+        // CUSTOMER data
+        customer_order_number: `CUST-${faker.string.alphanumeric(8).toUpperCase()}`,
+        customer_party_id: `PARTY-${faker.string.numeric(6)}`,
+        customer_party_name: faker.company.name(),
+        customer_party_address: faker.location.streetAddress({ useFullAddress: true }),
+        
+        // PATIENT data
+        eap_dossier_number: request.eapDossierNumber || `EAP-${faker.string.numeric(6)}`,
+        eap_dossier_approval_status: faker.helpers.arrayElement(eapApprovalStatuses),
+        eap_dossier_date_of_approval: eapApprovalDate,
+        
+        // Order planning data
+        order_reminder_date: orderReminderDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+        next_order_expected_date: nextOrderExpectedDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+        
+        // ORDER DATA - Identifiers
+        order_number: `ORD-${faker.string.alphanumeric(8).toUpperCase()}`,
+        order_status: orderStatus,
+        status_updated_at: faker.date.recent({ days: 30 }).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+        order_tracking_number: Math.random() > 0.3 ? faker.string.alphanumeric(12).toUpperCase() : '',
+        quantity: faker.number.int({ min: 1, max: 50 }),
+        weeks_ordered: weeksOrdered,
+        shipment_order_number: ['Shipped', 'Delivered'].includes(orderStatus)
+          ? `SHIP-${faker.string.alphanumeric(8).toUpperCase()}`
+          : '',
+        
+        // ORDER DATA - Dates
+        order_received_on: orderCreatedOn.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+        order_created_on: orderCreatedOn.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+        order_approved_on: orderApprovedOn ? orderApprovedOn.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
+        order_shipped_on: orderShippedOn ? orderShippedOn.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
+        order_delivered_on: orderDeliveredOn ? orderDeliveredOn.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
+
+        // All generated orders come from Kinaxis OMS integration
+        source: 'kinaxis',
+      });
+      
+      lastOrderDate = orderCreatedOn;
+    }
+  });
+  
+  return orders;
 };
