@@ -58,7 +58,7 @@ export const fundingModels = [
   'Insurance',
 ] as const;
 
-const phases = [
+export const phases = [
   'New request',
   'Enrollment',
   'Consultation',
@@ -169,6 +169,9 @@ export interface Order {
   order_shipped_on: string;
   order_delivered_on: string;
 
+  // Notes
+  notes: string;
+
   // Source
   source: 'kinaxis' | 'manual';
 }
@@ -276,6 +279,9 @@ export const generateOrders = (requests: Request[], ordersPerRequest: number = 3
         order_approved_on: orderApprovedOn ? orderApprovedOn.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
         order_shipped_on: orderShippedOn ? orderShippedOn.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
         order_delivered_on: orderDeliveredOn ? orderDeliveredOn.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
+
+        // Notes
+        notes: '',
 
         // All generated orders come from Kinaxis OMS integration
         source: 'kinaxis',

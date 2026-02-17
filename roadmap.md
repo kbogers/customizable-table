@@ -114,6 +114,64 @@
 - Details are displayed subtly: small text (`text-xs`), gray color, dot separators, with phase slightly bolder
 - Long physician/institution names are truncated with `truncate` + title tooltip
 
+### ✅ Order Notes Feature
+- **Order Notes Field**: Added `notes` field to Order interface for storing contextual, operational information
+- **Multi-line Text Support**: Implemented textarea input in OrderDetailsView component for entering multi-line notes
+- **Persistence**: Notes are saved with the order and persist after save and refresh (via existing save mechanism)
+- **UI Integration**: Notes field is visible in the Order Details panel with a dedicated section and divider
+- **Data Model**: Updated `generateOrders()` function to include empty notes field for generated orders
+- **New Order Creation**: New orders created via "Add order" button include the notes field initialized as empty string
+
+### ✅ Order Expand/Collapse Feature
+- **Expandable Order Items**: Orders in the Orders tab can now be expanded/collapsed by clicking the chevron icon
+- **Timeline View**: Expanded orders show a visual timeline with order status progression:
+  - Vertical timeline indicator with green segments for completed steps and gray for incomplete steps
+  - Circular indicator at the bottom of the timeline
+  - Shows order dates: Expected, Received, Approved, Shipped, Delivered
+- **Date Display**: Dates are shown as underlined blue links, with "Add date" placeholder for missing dates
+- **State Management**: Uses Set to track which orders are expanded, allowing multiple orders to be expanded simultaneously
+- **Interaction**: Chevron click toggles expansion without opening the full order details panel (clicking the order row still opens details)
+
+### ✅ Inline Editing
+- **Editable columns system**: Each column in `columnConfig` now has an `editable` boolean flag and optional `editorType` + `options` properties
+  - Editable columns: Owner (text), Phase (select), Comments (textarea), Product (text), Request type (select), Funding model (select), Rationale (textarea), Patient initials (text), Castor ID (text)
+  - Read-only columns: Request #, Physician, Institution, Country, Received on, Patient number, EAP dossier number, all Physician details
+  
+- **Hover interaction**: 
+  - All cells show light grey background on hover (`hover:bg-gray-100`)
+  - Editable cells show a pencil icon on the right side during hover
+  
+- **Edit triggering**:
+  - Clicking the pencil icon enters inline edit mode (one cell at a time)
+  - Clicking anywhere else in the cell opens the Details Panel with that field auto-focused
+  
+- **Editor types**:
+  - Text input: for Owner, Product, Patient initials, Castor ID
+  - Select dropdown: for Phase (phases), Request type (requestTypes), Funding model (fundingModels) — auto-saves on selection
+  - Textarea: for Comments, Rationale — expanding text area with save via ⌘Enter
+  
+- **Save/cancel behavior**:
+  - Save: ✓ button, Enter key (text/select), ⌘Enter (textarea), or blur (click away)
+  - Cancel: ✕ button or Esc key
+  - Changes are saved immediately to the data (no row-level or bulk save)
+  - Only one cell can be edited at a time
+  
+- **Data flow**:
+  - `Table.tsx` receives `onCellSave(requestId, field, value)` callback
+  - `App.tsx` handles the cell save by updating `requestsData`
+  - `Table.tsx` also receives `onCellClick(request, field)` for opening the details panel
+  
+- **Details Panel integration**:
+  - New `focusField` prop on `DetailsPanel` auto-switches to Details tab and focuses the corresponding form field
+  - All form fields have `data-field` attributes for programmatic focus
+
+- **Race condition fix**: `doSave` and `handleKeyDown` now read the current value directly from the DOM element (`inputRef.current.value`) via `getCurrentValue()` instead of relying on the React `value` prop, which could be stale due to asynchronous state updates. This ensures the correct value is saved when pressing Enter quickly after typing.
+
+- **Decisions**:
+  - Blur = save (not cancel) — user chose save-on-blur for spreadsheet-like UX
+  - Textarea uses ⌘/Ctrl+Enter to save (regular Enter inserts newline)
+  - `savedRef` guard prevents double-save when select onChange + blur fire together
+
 ## Future Enhancements (Potential)
 
 - Filtering functionality for orders

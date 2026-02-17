@@ -1,12 +1,13 @@
 import React from 'react';
 import type { Request, Order } from './mockData';
-import { requestTypes, fundingModels, specialties, orderStatuses } from './mockData';
+import { requestTypes, fundingModels, specialties } from './mockData';
 
 interface DetailsPanelProps {
   request: Request | null;
   orders: Order[];
   initialOrder?: Order | null;
   initialView?: 'request' | 'order';
+  focusField?: keyof Request | null;
   onClose: () => void;
   onSave?: (updatedRequest: Request) => void;
   onSaveOrder?: (updatedOrder: Order) => void;
@@ -28,6 +29,12 @@ const MoreVertIcon = () => (
 const ChevronDownIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+  </svg>
+);
+
+const ChevronUpIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
   </svg>
 );
 
@@ -70,29 +77,43 @@ interface OrderDetailsViewProps {
   isClosing?: boolean;
 }
 
+const StatusChip: React.FC<{ status: Order['order_status'] }> = ({ status }) => {
+  const colorMap: Record<Order['order_status'], { bg: string; text: string }> = {
+    'Pending': { bg: 'bg-amber-50', text: 'text-amber-700' },
+    'Approved': { bg: 'bg-blue-50', text: 'text-blue-700' },
+    'Shipped': { bg: 'bg-purple-50', text: 'text-purple-700' },
+    'Delivered': { bg: 'bg-green-50', text: 'text-green-700' },
+    'Cancelled': { bg: 'bg-red-50', text: 'text-red-700' },
+    'On Hold': { bg: 'bg-gray-100', text: 'text-gray-700' },
+  };
+  const colors = colorMap[status] || { bg: 'bg-gray-100', text: 'text-gray-700' };
+  return (
+    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${colors.bg} ${colors.text}`}>
+      {status}
+    </span>
+  );
+};
+
+const ReadOnlyField: React.FC<{ label: string; value: string | number; className?: string }> = ({ label, value, className }) => (
+  <div className={`flex items-baseline justify-between py-1.5 ${className || ''}`}>
+    <span className="text-sm text-[#666967] shrink-0">{label}</span>
+    <span className="text-sm font-medium text-[#012d20] text-right">{value || '—'}</span>
+  </div>
+);
+
 const OrderDetailsView: React.FC<OrderDetailsViewProps> = ({ order, request: _request, onBack, onSave, isClosing = false }) => {
-  const [formData, setFormData] = React.useState<Order>(order);
+  const [notes, setNotes] = React.useState(order.notes || '');
 
   React.useEffect(() => {
-    setFormData(order);
+    setNotes(order.notes || '');
   }, [order]);
 
-  const handleFieldChange = <K extends keyof Order>(field: K, value: Order[K]) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
+  const hasNotesChanged = notes !== (order.notes || '');
 
-  const hasChanges = JSON.stringify(formData) !== JSON.stringify(order);
-
-  const handleSave = () => {
+  const handleSaveNotes = () => {
     if (onSave) {
-      onSave(formData);
+      onSave({ ...order, notes });
     }
-    onBack();
-  };
-
-  const handleCancel = () => {
-    setFormData(order);
-    onBack();
   };
 
   return (
@@ -104,20 +125,20 @@ const OrderDetailsView: React.FC<OrderDetailsViewProps> = ({ order, request: _re
       <div className="flex items-center justify-between px-5 py-5 border-b border-gray-200 h-16 shrink-0">
         <div className="flex items-center gap-2">
           <button
-            onClick={handleCancel}
+            onClick={onBack}
             className="p-2 rounded-full hover:bg-gray-100 transition-colors"
           >
             <ArrowBackIcon />
           </button>
           <h2 className="text-lg font-semibold text-[#012d20] tracking-[-0.25px]">
-            {formData.order_number}
+            {order.order_number}
           </h2>
           <button className="p-2 rounded-full hover:bg-gray-100 transition-colors">
             <MoreVertIcon />
           </button>
         </div>
         <button
-          onClick={handleCancel}
+          onClick={onBack}
           className="p-2 rounded-full hover:bg-gray-100 transition-colors"
         >
           <CloseIcon />
@@ -125,204 +146,83 @@ const OrderDetailsView: React.FC<OrderDetailsViewProps> = ({ order, request: _re
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="flex flex-col gap-6">
-          {/* Order Status */}
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-semibold text-[#012d20] pb-1">
-              Order Status
-            </label>
-            <div className="relative">
-              <select
-                value={formData.order_status}
-                onChange={(e) => handleFieldChange('order_status', e.target.value as Order['order_status'])}
-                className="h-11 w-full pl-3 pr-12 py-3 border border-[#919392] rounded-lg bg-white text-sm text-[#012d20] appearance-none focus:outline-none focus:ring-2 focus:ring-[#007c50] focus:border-transparent cursor-pointer"
-              >
-                {orderStatuses.map((status) => (
-                  <option key={status} value={status}>{status}</option>
-                ))}
-              </select>
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-600">
-                <ChevronDownIcon />
-              </div>
-            </div>
-          </div>
-
-          {/* Quantity */}
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-semibold text-[#012d20] pb-1">
-              Quantity
-            </label>
-            <input
-              type="number"
-              value={formData.quantity}
-              onChange={(e) => handleFieldChange('quantity', parseInt(e.target.value) || 0)}
-              className="h-11 px-3 py-3 border border-[#919392] rounded-lg bg-white text-sm text-[#012d20] focus:outline-none focus:ring-2 focus:ring-[#007c50] focus:border-transparent"
-            />
-          </div>
-
-          {/* Weeks Ordered */}
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-semibold text-[#012d20] pb-1">
-              Weeks Ordered
-            </label>
-            <input
-              type="number"
-              value={formData.weeks_ordered}
-              onChange={(e) => handleFieldChange('weeks_ordered', parseInt(e.target.value) || 0)}
-              className="h-11 px-3 py-3 border border-[#919392] rounded-lg bg-white text-sm text-[#012d20] focus:outline-none focus:ring-2 focus:ring-[#007c50] focus:border-transparent"
-            />
-          </div>
-
-          {/* Order Number */}
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-semibold text-[#012d20] pb-1">
-              Order Number
-            </label>
-            <input
-              type="text"
-              value={formData.order_number}
-              onChange={(e) => handleFieldChange('order_number', e.target.value)}
-              className="h-11 px-3 py-3 border border-[#919392] rounded-lg bg-white text-sm text-[#012d20] focus:outline-none focus:ring-2 focus:ring-[#007c50] focus:border-transparent"
-            />
-          </div>
-
-          {/* Order Tracking Number */}
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-semibold text-[#012d20] pb-1">
-              Tracking Number
-            </label>
-            <input
-              type="text"
-              value={formData.order_tracking_number || ''}
-              onChange={(e) => handleFieldChange('order_tracking_number', e.target.value)}
-              className="h-11 px-3 py-3 border border-[#919392] rounded-lg bg-white text-sm text-[#012d20] focus:outline-none focus:ring-2 focus:ring-[#007c50] focus:border-transparent"
-            />
-          </div>
-
-          {/* Divider */}
-          <div className="flex flex-col gap-4 pt-2">
-            <div className="h-px bg-gray-200" />
-            <h3 className="text-lg font-semibold text-[#012d20] tracking-[-0.25px]">
-              Dates
-            </h3>
-          </div>
-
-          {/* Order Received On */}
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-semibold text-[#012d20] pb-1">
-              Order Received On
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                value={formData.order_received_on}
-                onChange={(e) => handleFieldChange('order_received_on', e.target.value)}
-                placeholder="DD MMM YYYY"
-                className="h-11 w-full pl-3 pr-12 py-3 border border-[#919392] rounded-lg bg-white text-sm text-[#012d20] focus:outline-none focus:ring-2 focus:ring-[#007c50] focus:border-transparent"
-              />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-600">
-                <CalendarIcon />
-              </div>
-            </div>
-          </div>
-
-          {/* Order Created On */}
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-semibold text-[#012d20] pb-1">
-              Order Created On
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                value={formData.order_created_on}
-                onChange={(e) => handleFieldChange('order_created_on', e.target.value)}
-                placeholder="DD MMM YYYY"
-                className="h-11 w-full pl-3 pr-12 py-3 border border-[#919392] rounded-lg bg-white text-sm text-[#012d20] focus:outline-none focus:ring-2 focus:ring-[#007c50] focus:border-transparent"
-              />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-600">
-                <CalendarIcon />
-              </div>
-            </div>
-          </div>
-
-          {/* Order Approved On */}
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-semibold text-[#012d20] pb-1">
-              Order Approved On
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                value={formData.order_approved_on || ''}
-                onChange={(e) => handleFieldChange('order_approved_on', e.target.value)}
-                placeholder="DD MMM YYYY"
-                className="h-11 w-full pl-3 pr-12 py-3 border border-[#919392] rounded-lg bg-white text-sm text-[#012d20] focus:outline-none focus:ring-2 focus:ring-[#007c50] focus:border-transparent"
-              />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-600">
-                <CalendarIcon />
-              </div>
-            </div>
-          </div>
-
-          {/* Order Shipped On */}
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-semibold text-[#012d20] pb-1">
-              Order Shipped On
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                value={formData.order_shipped_on || ''}
-                onChange={(e) => handleFieldChange('order_shipped_on', e.target.value)}
-                placeholder="DD MMM YYYY"
-                className="h-11 w-full pl-3 pr-12 py-3 border border-[#919392] rounded-lg bg-white text-sm text-[#012d20] focus:outline-none focus:ring-2 focus:ring-[#007c50] focus:border-transparent"
-              />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-600">
-                <CalendarIcon />
-              </div>
-            </div>
-          </div>
-
-          {/* Order Delivered On */}
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-semibold text-[#012d20] pb-1">
-              Order Delivered On
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                value={formData.order_delivered_on || ''}
-                onChange={(e) => handleFieldChange('order_delivered_on', e.target.value)}
-                placeholder="DD MMM YYYY"
-                className="h-11 w-full pl-3 pr-12 py-3 border border-[#919392] rounded-lg bg-white text-sm text-[#012d20] focus:outline-none focus:ring-2 focus:ring-[#007c50] focus:border-transparent"
-              />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-600">
-                <CalendarIcon />
-              </div>
-            </div>
-          </div>
+      <div className="flex-1 overflow-y-auto px-5 py-4">
+        {/* Status + Source row */}
+        <div className="flex items-center gap-2 mb-5">
+          <StatusChip status={order.order_status} />
+          {order.source === 'kinaxis' && (
+            <span className="inline-flex items-center gap-1 pl-0.5 pr-1.5 py-0.5 rounded-full bg-[#f3f4f3] text-[11px] text-[#666967]">
+              <KinaxisAvatar />
+              Kinaxis
+            </span>
+          )}
         </div>
-      </div>
 
-      {/* Footer with Save/Cancel buttons */}
-      <div className="border-t border-gray-200 px-4 py-4 flex gap-3 justify-end shrink-0">
-        <button
-          onClick={handleCancel}
-          className="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={handleSave}
-          disabled={!hasChanges}
-          className={`px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors ${hasChanges
-            ? 'bg-[#007c50] hover:bg-[#006640] cursor-pointer'
-            : 'bg-gray-300 cursor-not-allowed'
-            }`}
-        >
-          Save
-        </button>
+        {/* Order Details */}
+        <div className="divide-y divide-gray-100">
+          <ReadOnlyField label="Quantity" value={order.quantity} />
+          <ReadOnlyField label="Weeks ordered" value={order.weeks_ordered} />
+          <ReadOnlyField label="Order number" value={order.order_number} />
+          <ReadOnlyField label="Tracking number" value={order.order_tracking_number} />
+          <ReadOnlyField label="Shipment order #" value={order.shipment_order_number} />
+        </div>
+
+        {/* Customer section */}
+        <h3 className="text-sm font-semibold text-[#012d20] mt-5 mb-2">Customer</h3>
+        <div className="divide-y divide-gray-100">
+          <ReadOnlyField label="Customer order #" value={order.customer_order_number} />
+          <ReadOnlyField label="Party ID" value={order.customer_party_id} />
+          <ReadOnlyField label="Party name" value={order.customer_party_name} />
+          <ReadOnlyField label="Address" value={order.customer_party_address} />
+        </div>
+
+        {/* Patient section */}
+        <h3 className="text-sm font-semibold text-[#012d20] mt-5 mb-2">Patient</h3>
+        <div className="divide-y divide-gray-100">
+          <ReadOnlyField label="EAP dossier #" value={order.eap_dossier_number} />
+          <ReadOnlyField label="Approval status" value={order.eap_dossier_approval_status} />
+          <ReadOnlyField label="Approval date" value={order.eap_dossier_date_of_approval} />
+        </div>
+
+        {/* Dates section */}
+        <h3 className="text-sm font-semibold text-[#012d20] mt-5 mb-2">Dates</h3>
+        <div className="divide-y divide-gray-100">
+          <ReadOnlyField label="Received" value={order.order_received_on} />
+          <ReadOnlyField label="Created" value={order.order_created_on} />
+          <ReadOnlyField label="Approved" value={order.order_approved_on} />
+          <ReadOnlyField label="Shipped" value={order.order_shipped_on} />
+          <ReadOnlyField label="Delivered" value={order.order_delivered_on} />
+          <ReadOnlyField label="Status updated" value={order.status_updated_at} />
+        </div>
+
+        {/* Planning section */}
+        <h3 className="text-sm font-semibold text-[#012d20] mt-5 mb-2">Planning</h3>
+        <div className="divide-y divide-gray-100">
+          <ReadOnlyField label="Reminder date" value={order.order_reminder_date} />
+          <ReadOnlyField label="Next order expected" value={order.next_order_expected_date} />
+        </div>
+
+        {/* Notes section - editable */}
+        <div className="mt-5">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold text-[#012d20]">Notes</h3>
+            {hasNotesChanged && (
+              <button
+                onClick={handleSaveNotes}
+                className="px-3 py-1 text-xs font-semibold text-white bg-[#007c50] hover:bg-[#006640] rounded-lg transition-colors"
+              >
+                Save
+              </button>
+            )}
+          </div>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={3}
+            placeholder="Add notes about this order..."
+            className="w-full px-3 py-2 border border-[#919392] rounded-lg bg-white text-sm text-[#012d20] resize-none whitespace-pre-wrap focus:outline-none focus:ring-2 focus:ring-[#007c50] focus:border-transparent"
+          />
+        </div>
       </div>
     </div>
   );
@@ -336,6 +236,7 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
   orders,
   initialOrder = null,
   initialView = 'request',
+  focusField = null,
   onClose,
   onSave,
   onSaveOrder,
@@ -349,6 +250,8 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
   const [isOrderClosing, setIsOrderClosing] = React.useState(false);
   // Track if the request panel has already been shown (to avoid re-animating)
   const [hasAnimatedIn, setHasAnimatedIn] = React.useState(false);
+  // Track which orders are expanded in the orders list
+  const [expandedOrders, setExpandedOrders] = React.useState<Set<string>>(new Set());
 
   // Update panel view and selected order when initial props change
   React.useEffect(() => {
@@ -373,6 +276,22 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
       setFormData({ ...request });
     }
   }, [request]);
+
+  // Focus the specified field when panel opens or focusField changes
+  React.useEffect(() => {
+    if (focusField && request) {
+      setActiveTab('details');
+      // Delay to allow the tab to render
+      const timer = setTimeout(() => {
+        const el = document.querySelector(`[data-field="${focusField}"]`) as HTMLElement;
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.focus();
+        }
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [focusField, request]);
 
   // Get orders for this request, sorted by date (latest first)
   const requestOrders = React.useMemo(() => {
@@ -529,6 +448,7 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
                   Product
                 </label>
                 <input
+                  data-field="product"
                   type="text"
                   value={formData.product || ''}
                   onChange={(e) => handleFieldChange('product', e.target.value)}
@@ -543,6 +463,7 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
                 </label>
                 <div className="relative">
                   <select
+                    data-field="requestType"
                     value={formData.requestType}
                     onChange={(e) => handleFieldChange('requestType', e.target.value as Request['requestType'])}
                     className="h-11 w-full pl-3 pr-12 py-3 border border-[#919392] rounded-lg bg-white text-sm text-[#012d20] appearance-none focus:outline-none focus:ring-2 focus:ring-[#007c50] focus:border-transparent cursor-pointer"
@@ -564,6 +485,7 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
                 </label>
                 <div className="relative">
                   <select
+                    data-field="fundingModel"
                     value={formData.fundingModel}
                     onChange={(e) => handleFieldChange('fundingModel', e.target.value as Request['fundingModel'])}
                     className="h-11 w-full pl-3 pr-12 py-3 border border-[#919392] rounded-lg bg-white text-sm text-[#012d20] appearance-none focus:outline-none focus:ring-2 focus:ring-[#007c50] focus:border-transparent cursor-pointer"
@@ -585,6 +507,7 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
                 </label>
                 <div className="relative">
                   <input
+                    data-field="receivedOn"
                     type="text"
                     value={formData.receivedOn}
                     onChange={(e) => handleFieldChange('receivedOn', e.target.value)}
@@ -604,6 +527,7 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
                 </label>
                 <div className="relative">
                   <input
+                    data-field="country"
                     type="text"
                     value={formData.country}
                     onChange={(e) => handleFieldChange('country', e.target.value)}
@@ -621,6 +545,7 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
                   Institution
                 </label>
                 <input
+                  data-field="institution"
                   type="text"
                   value={formData.institution}
                   onChange={(e) => handleFieldChange('institution', e.target.value)}
@@ -634,6 +559,7 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
                   Rationale
                 </label>
                 <textarea
+                  data-field="rationale"
                   value={formData.rationale || ''}
                   onChange={(e) => handleFieldChange('rationale', e.target.value)}
                   rows={4}
@@ -648,6 +574,7 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
                 </label>
                 <div className="relative">
                   <input
+                    data-field="owner"
                     type="text"
                     value={formData.owner}
                     onChange={(e) => handleFieldChange('owner', e.target.value)}
@@ -673,6 +600,7 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
                   Patient initials
                 </label>
                 <input
+                  data-field="patientInitials"
                   type="text"
                   value={formData.patientInitials || ''}
                   onChange={(e) => handleFieldChange('patientInitials', e.target.value)}
@@ -686,6 +614,7 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
                   Patient number
                 </label>
                 <input
+                  data-field="patientNumber"
                   type="text"
                   value={formData.patientNumber}
                   onChange={(e) => handleFieldChange('patientNumber', e.target.value)}
@@ -699,6 +628,7 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
                   Castor ID
                 </label>
                 <input
+                  data-field="castorId"
                   type="text"
                   value={formData.castorId || ''}
                   onChange={(e) => handleFieldChange('castorId', e.target.value)}
@@ -712,6 +642,7 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
                   EAP dossier number
                 </label>
                 <input
+                  data-field="eapDossierNumber"
                   type="text"
                   value={formData.eapDossierNumber || ''}
                   onChange={(e) => handleFieldChange('eapDossierNumber', e.target.value)}
@@ -733,6 +664,7 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
                   Email
                 </label>
                 <input
+                  data-field="physicianEmail"
                   type="email"
                   value={formData.physicianEmail}
                   onChange={(e) => handleFieldChange('physicianEmail', e.target.value)}
@@ -746,6 +678,7 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
                   First name
                 </label>
                 <input
+                  data-field="physicianFirstName"
                   type="text"
                   value={formData.physicianFirstName}
                   onChange={(e) => handleFieldChange('physicianFirstName', e.target.value)}
@@ -759,6 +692,7 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
                   Last name
                 </label>
                 <input
+                  data-field="physicianLastName"
                   type="text"
                   value={formData.physicianLastName}
                   onChange={(e) => handleFieldChange('physicianLastName', e.target.value)}
@@ -772,6 +706,7 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
                   Phone number
                 </label>
                 <input
+                  data-field="physicianPhone"
                   type="tel"
                   value={formData.physicianPhone}
                   onChange={(e) => handleFieldChange('physicianPhone', e.target.value)}
@@ -786,6 +721,7 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
                 </label>
                 <div className="relative">
                   <select
+                    data-field="physicianSpecialty"
                     value={formData.physicianSpecialty}
                     onChange={(e) => handleFieldChange('physicianSpecialty', e.target.value as Request['physicianSpecialty'])}
                     className="h-11 w-full pl-3 pr-12 py-3 border border-[#919392] rounded-lg bg-white text-sm text-[#012d20] appearance-none focus:outline-none focus:ring-2 focus:ring-[#007c50] focus:border-transparent cursor-pointer"
@@ -889,6 +825,7 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
                         order_approved_on: '',
                         order_shipped_on: '',
                         order_delivered_on: '',
+                        notes: '',
                         source: 'manual',
                       };
                       onCreateOrder(newOrder);
@@ -919,16 +856,53 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
                           ? `Approved ${order.order_approved_on}`
                           : `Created ${order.order_created_on}`;
 
+                    const isExpanded = expandedOrders.has(order.order_number);
+                    
+                    const toggleExpand = (e: React.MouseEvent) => {
+                      e.stopPropagation();
+                      setExpandedOrders(prev => {
+                        const newSet = new Set(prev);
+                        if (newSet.has(order.order_number)) {
+                          newSet.delete(order.order_number);
+                        } else {
+                          newSet.add(order.order_number);
+                        }
+                        return newSet;
+                      });
+                    };
+
+                    // Timeline steps based on the Dates section in Order Details
+                    // Each step: label, date value, whether it has a date
+                    const timelineSteps = [
+                      { label: 'Received', date: order.order_received_on, hasDate: !!order.order_received_on },
+                      { label: 'Created', date: order.order_created_on, hasDate: !!order.order_created_on },
+                      { label: 'Approved', date: order.order_approved_on, hasDate: !!order.order_approved_on },
+                      { label: 'Shipped', date: order.order_shipped_on, hasDate: !!order.order_shipped_on },
+                      { label: 'Delivered', date: order.order_delivered_on, hasDate: !!order.order_delivered_on },
+                    ];
+                    
+                    // Find the index of the last completed step (has a date)
+                    let lastCompletedIndex = -1;
+                    for (let i = timelineSteps.length - 1; i >= 0; i--) {
+                      if (timelineSteps[i].hasDate) {
+                        lastCompletedIndex = i;
+                        break;
+                      }
+                    }
+
                     return (
                       <div
                         key={order.order_number}
-                        className="border-b border-gray-200 bg-white hover:bg-gray-50 transition-colors cursor-pointer"
-                        onClick={() => {
-                          setSelectedOrder(order);
-                          setPanelView('order');
-                        }}
+                        className="border-b border-gray-200 bg-white"
                       >
-                        <div className="px-4 py-4 flex items-center justify-between">
+                        {/* Order Header */}
+                        <div
+                          className="px-4 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
+                          onClick={() => {
+                            setSelectedOrder(order);
+                            setPanelView('order');
+                          }}
+                        >
                           <div className="flex flex-col gap-2">
                             <div className="flex items-center gap-2">
                               <span className="text-sm text-[#012d20] w-5 text-right">{index + 1}.</span>
@@ -956,11 +930,52 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
                             >
                               <MoreVertIcon />
                             </button>
-                            <div className="text-gray-600">
-                              <ChevronDownIcon />
-                            </div>
+                            <button
+                              onClick={toggleExpand}
+                              className="p-2 rounded-full hover:bg-gray-200 transition-colors text-gray-600"
+                            >
+                              {isExpanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
+                            </button>
                           </div>
                         </div>
+
+                        {/* Expanded Content */}
+                        {isExpanded && (
+                          <div className="bg-white pb-4 pl-[25px] pr-4">
+                            <div className="flex gap-4">
+                              {/* Timeline Indicator - continuous bar aligned to labels */}
+                              <div className="flex flex-col items-center shrink-0 w-[3px] relative pb-4">
+                                {/* Full gray background bar */}
+                                <div className="w-full flex-1 bg-[#ededed] rounded-[3px]" />
+                                {/* Green overlay for completed portion - layered on top */}
+                                {lastCompletedIndex >= 0 && (
+                                  <div
+                                    className="absolute top-0 left-0 w-full bg-[#007c50] rounded-[3px]"
+                                    style={{
+                                      height: `calc(${(lastCompletedIndex / (timelineSteps.length - 1)) * 100}% + 10px)`,
+                                    }}
+                                  />
+                                )}
+                                {/* Endpoint dot at the very bottom */}
+                                <div className="absolute -bottom-[1px] left-1/2 -translate-x-1/2 w-[9px] h-[9px] rounded-full bg-[#d1d1d1] z-[2]" />
+                              </div>
+
+                              {/* Date Sections */}
+                              <div className="flex flex-1 flex-col gap-[24px]">
+                                {timelineSteps.map((step) => (
+                                  <div key={step.label} className="flex gap-2 items-center leading-[20px]">
+                                    <p className={`text-sm font-semibold w-[80px] shrink-0 ${step.hasDate ? 'text-[#012d20]' : 'text-[#666967]'}`}>
+                                      {step.label}
+                                    </p>
+                                    <p className={`text-sm font-medium ${step.hasDate ? 'text-[#012d20]' : 'text-[#666967]'}`}>
+                                      {step.hasDate ? step.date : 'Add date'}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })

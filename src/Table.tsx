@@ -9,6 +9,7 @@ import {
 } from '@tanstack/react-table';
 import type { SortingState, Column, Header, ColumnOrderState, VisibilityState, ColumnSizingState } from '@tanstack/react-table';
 import type { Request } from './mockData';
+import { phases, requestTypes, fundingModels } from './mockData';
 
 const columnHelper = createColumnHelper<Request>();
 
@@ -18,37 +19,40 @@ interface ColumnConfigItem {
     label: string;
     group: 'core' | 'details' | 'identifiers' | 'physician';
     defaultVisible: boolean;
+    editable: boolean;
+    editorType?: 'text' | 'select' | 'textarea';
+    options?: readonly string[];
 }
 
 const columnConfig: ColumnConfigItem[] = [
     // Core fields (visible by default)
-    { key: 'requestId', label: 'Request #', group: 'core', defaultVisible: true },
-    { key: 'physician', label: 'Physician', group: 'core', defaultVisible: true },
-    { key: 'institution', label: 'Institution', group: 'core', defaultVisible: true },
-    { key: 'country', label: 'Country', group: 'core', defaultVisible: true },
-    { key: 'owner', label: 'Owner', group: 'core', defaultVisible: true },
-    { key: 'phase', label: 'Phase', group: 'core', defaultVisible: true },
-    { key: 'comments', label: 'Comments', group: 'core', defaultVisible: true },
+    { key: 'requestId', label: 'Request #', group: 'core', defaultVisible: true, editable: false },
+    { key: 'physician', label: 'Physician', group: 'core', defaultVisible: true, editable: false },
+    { key: 'institution', label: 'Institution', group: 'core', defaultVisible: true, editable: false },
+    { key: 'country', label: 'Country', group: 'core', defaultVisible: true, editable: false },
+    { key: 'owner', label: 'Owner', group: 'core', defaultVisible: true, editable: true, editorType: 'text' },
+    { key: 'phase', label: 'Phase', group: 'core', defaultVisible: true, editable: true, editorType: 'select', options: phases },
+    { key: 'comments', label: 'Comments', group: 'core', defaultVisible: true, editable: true, editorType: 'textarea' },
 
     // Details fields (hidden by default)
-    { key: 'product', label: 'Product', group: 'details', defaultVisible: false },
-    { key: 'requestType', label: 'Request type', group: 'details', defaultVisible: false },
-    { key: 'fundingModel', label: 'Funding model', group: 'details', defaultVisible: false },
-    { key: 'receivedOn', label: 'Received on', group: 'details', defaultVisible: false },
-    { key: 'rationale', label: 'Rationale', group: 'details', defaultVisible: false },
+    { key: 'product', label: 'Product', group: 'details', defaultVisible: false, editable: true, editorType: 'text' },
+    { key: 'requestType', label: 'Request type', group: 'details', defaultVisible: false, editable: true, editorType: 'select', options: requestTypes },
+    { key: 'fundingModel', label: 'Funding model', group: 'details', defaultVisible: false, editable: true, editorType: 'select', options: fundingModels },
+    { key: 'receivedOn', label: 'Received on', group: 'details', defaultVisible: false, editable: false },
+    { key: 'rationale', label: 'Rationale', group: 'details', defaultVisible: false, editable: true, editorType: 'textarea' },
 
     // Identifiers (hidden by default)
-    { key: 'patientInitials', label: 'Patient initials', group: 'identifiers', defaultVisible: false },
-    { key: 'patientNumber', label: 'Patient number', group: 'identifiers', defaultVisible: false },
-    { key: 'castorId', label: 'Castor ID', group: 'identifiers', defaultVisible: false },
-    { key: 'eapDossierNumber', label: 'EAP dossier number', group: 'identifiers', defaultVisible: false },
+    { key: 'patientInitials', label: 'Patient initials', group: 'identifiers', defaultVisible: false, editable: true, editorType: 'text' },
+    { key: 'patientNumber', label: 'Patient number', group: 'identifiers', defaultVisible: false, editable: false },
+    { key: 'castorId', label: 'Castor ID', group: 'identifiers', defaultVisible: false, editable: true, editorType: 'text' },
+    { key: 'eapDossierNumber', label: 'EAP dossier number', group: 'identifiers', defaultVisible: false, editable: false },
 
     // Physician details (hidden by default)
-    { key: 'physicianEmail', label: 'Physician email', group: 'physician', defaultVisible: false },
-    { key: 'physicianFirstName', label: 'Physician first name', group: 'physician', defaultVisible: false },
-    { key: 'physicianLastName', label: 'Physician last name', group: 'physician', defaultVisible: false },
-    { key: 'physicianPhone', label: 'Phone number', group: 'physician', defaultVisible: false },
-    { key: 'physicianSpecialty', label: 'Specialty', group: 'physician', defaultVisible: false },
+    { key: 'physicianEmail', label: 'Physician email', group: 'physician', defaultVisible: false, editable: false },
+    { key: 'physicianFirstName', label: 'Physician first name', group: 'physician', defaultVisible: false, editable: false },
+    { key: 'physicianLastName', label: 'Physician last name', group: 'physician', defaultVisible: false, editable: false },
+    { key: 'physicianPhone', label: 'Phone number', group: 'physician', defaultVisible: false, editable: false },
+    { key: 'physicianSpecialty', label: 'Specialty', group: 'physician', defaultVisible: false, editable: false },
 ];
 
 const getColumnLabel = (columnId: string): string => {
@@ -334,6 +338,211 @@ const CalendarViewWeekIcon = () => (
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
     </svg>
 );
+
+// Inline editing icons
+const PencilIcon = () => (
+    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+    </svg>
+);
+
+const InlineCheckIcon = () => (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+    </svg>
+);
+
+const InlineCancelIcon = () => (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+    </svg>
+);
+
+// Inline Editor Component
+interface InlineEditorProps {
+    value: string;
+    onChange: (value: string) => void;
+    editorType: 'text' | 'select' | 'textarea';
+    options?: readonly string[];
+    onSave: (value: string) => void;
+    onCancel: () => void;
+}
+
+const InlineEditor: React.FC<InlineEditorProps> = ({
+    value,
+    onChange,
+    editorType,
+    options,
+    onSave,
+    onCancel,
+}) => {
+    const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(null);
+    const savedRef = useRef(false);
+
+    useEffect(() => {
+        const el = inputRef.current;
+        if (el) {
+            el.focus();
+            if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+                el.select();
+            }
+        }
+    }, []);
+
+    const doSave = (val: string) => {
+        if (savedRef.current) return;
+        savedRef.current = true;
+        onSave(val);
+    };
+
+    const doCancel = () => {
+        if (savedRef.current) return;
+        savedRef.current = true;
+        onCancel();
+    };
+
+    const getCurrentValue = () => {
+        const el = inputRef.current;
+        if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement) {
+            return el.value;
+        }
+        return value;
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            doSave(getCurrentValue());
+        }
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            doCancel();
+        }
+    };
+
+    const handleBlur = () => {
+        doSave(getCurrentValue());
+    };
+
+    const btnBase = "p-1 rounded shrink-0 transition-colors";
+
+    if (editorType === 'select') {
+        return (
+            <div className="flex items-center gap-1" data-inline-editor>
+                <select
+                    ref={inputRef as React.RefObject<HTMLSelectElement>}
+                    value={value}
+                    onChange={(e) => {
+                        const newVal = e.target.value;
+                        onChange(newVal);
+                        doSave(newVal);
+                    }}
+                    onKeyDown={handleKeyDown}
+                    onBlur={handleBlur}
+                    className="flex-1 min-w-0 px-1 py-1 text-sm bg-transparent border-0 focus:outline-none focus:ring-0 cursor-pointer"
+                >
+                    {options?.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                </select>
+                <button
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => doSave(getCurrentValue())}
+                    className={`${btnBase} hover:bg-green-100 text-green-600`}
+                    title="Save (Enter)"
+                >
+                    <InlineCheckIcon />
+                </button>
+                <button
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => doCancel()}
+                    className={`${btnBase} hover:bg-red-100 text-red-500`}
+                    title="Cancel (Esc)"
+                >
+                    <InlineCancelIcon />
+                </button>
+            </div>
+        );
+    }
+
+    if (editorType === 'textarea') {
+        return (
+            <div
+                className="absolute top-0 left-0 w-full min-w-[280px] bg-white rounded-md shadow-lg ring-2 ring-[#007c50] z-30"
+                data-inline-editor
+                onClick={(e) => e.stopPropagation()}
+            >
+                <textarea
+                    ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                            e.preventDefault();
+                            doSave(getCurrentValue());
+                        }
+                        if (e.key === 'Escape') {
+                            e.preventDefault();
+                            doCancel();
+                        }
+                    }}
+                    onBlur={handleBlur}
+                    className="w-full px-2 py-2 text-sm bg-transparent border-0 focus:outline-none focus:ring-0 resize-none rounded-t-md"
+                    rows={4}
+                />
+                <div className="flex justify-end gap-1 px-1 pb-1">
+                    <button
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => doSave(getCurrentValue())}
+                        className={`${btnBase} hover:bg-green-100 text-green-600`}
+                        title="Save (⌘Enter)"
+                    >
+                        <InlineCheckIcon />
+                    </button>
+                    <button
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => doCancel()}
+                        className={`${btnBase} hover:bg-red-100 text-red-500`}
+                        title="Cancel (Esc)"
+                    >
+                        <InlineCancelIcon />
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    // Default: text input
+    return (
+        <div className="flex items-center gap-1" data-inline-editor>
+            <input
+                ref={inputRef as React.RefObject<HTMLInputElement>}
+                type="text"
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onBlur={handleBlur}
+                className="flex-1 min-w-0 px-1 py-1 text-sm bg-transparent border-0 focus:outline-none focus:ring-0"
+            />
+            <button
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => doSave(getCurrentValue())}
+                className={`${btnBase} hover:bg-green-100 text-green-600`}
+                title="Save (Enter)"
+            >
+                <InlineCheckIcon />
+            </button>
+            <button
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => doCancel()}
+                className={`${btnBase} hover:bg-red-100 text-red-500`}
+                title="Cancel (Esc)"
+            >
+                <InlineCancelIcon />
+            </button>
+        </div>
+    );
+};
 
 // Column Menu Component
 interface ColumnMenuProps {
@@ -746,9 +955,11 @@ const HeaderCell: React.FC<HeaderCellProps> = ({
 interface TableProps {
     data: Request[];
     onRowClick?: (request: Request) => void;
+    onCellClick?: (request: Request, field: keyof Request) => void;
+    onCellSave?: (requestId: string, field: keyof Request, value: string) => void;
 }
 
-export const Table: React.FC<TableProps> = ({ data, onRowClick }) => {
+export const Table: React.FC<TableProps> = ({ data, onRowClick, onCellClick, onCellSave }) => {
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(getDefaultVisibility);
     const [columnOrder, setColumnOrder] = useState<ColumnOrderState>(
@@ -766,6 +977,8 @@ export const Table: React.FC<TableProps> = ({ data, onRowClick }) => {
     const [hasInitializedSizing, setHasInitializedSizing] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
+    const [editingCell, setEditingCell] = useState<{ rowId: string; columnId: string } | null>(null);
+    const [editValue, setEditValue] = useState('');
     const containerRef = useRef<HTMLDivElement>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const toolbarPortal = document.getElementById('table-toolbar-portal');
@@ -978,22 +1191,86 @@ export const Table: React.FC<TableProps> = ({ data, onRowClick }) => {
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                         {table.getRowModel().rows.map((row) => (
-                            <tr
-                                key={row.id}
-                                className={`hover:bg-gray-50 group/row ${onRowClick ? 'cursor-pointer' : ''}`}
-                                onClick={() => onRowClick?.(row.original)}
-                            >
+                            <tr key={row.id} className="group/row">
                                 {row.getVisibleCells().map((cell) => {
                                     const isPinned = cell.column.getIsPinned();
+                                    const columnId = cell.column.id;
+                                    const config = columnConfig.find(c => c.key === columnId);
+                                    const isEditable = config?.editable ?? false;
+                                    const isEditing = editingCell?.rowId === row.id && editingCell?.columnId === columnId;
+                                    const isTextarea = config?.editorType === 'textarea';
+
                                     return (
                                         <td
                                             key={cell.id}
-                                            className={`px-4 py-4 text-sm text-gray-600 whitespace-nowrap ${
-                                                dragState.draggedColumnId === cell.column.id ? 'opacity-50 bg-blue-50' : ''
-                                            } ${isPinned ? 'bg-white sticky left-0 z-10 border-r-2 border-gray-300 group-hover/row:bg-gray-50' : ''}`}
+                                            className={`relative text-sm text-gray-600 ${
+                                                isEditing && !isTextarea
+                                                    ? 'whitespace-nowrap px-2 py-1 bg-white ring-2 ring-[#007c50] ring-inset z-20 rounded-sm'
+                                                    : `whitespace-nowrap px-4 py-4 group/cell cursor-pointer hover:bg-gray-100 ${
+                                                        isPinned ? 'bg-white sticky left-0 z-10 border-r-2 border-gray-300' : ''
+                                                    }`
+                                            } ${
+                                                !isEditing && dragState.draggedColumnId === cell.column.id ? 'opacity-50 bg-blue-50' : ''
+                                            }`}
                                             style={{ width: cell.column.getSize() }}
+                                            onClick={() => {
+                                                if (isEditing) return;
+                                                if (onCellClick) {
+                                                    onCellClick(row.original, columnId as keyof Request);
+                                                } else if (onRowClick) {
+                                                    onRowClick(row.original);
+                                                }
+                                            }}
                                         >
-                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                            {isEditing && !isTextarea ? (
+                                                <InlineEditor
+                                                    value={editValue}
+                                                    onChange={setEditValue}
+                                                    editorType={config?.editorType || 'text'}
+                                                    options={config?.options}
+                                                    onSave={(val) => {
+                                                        onCellSave?.(row.original.requestId, columnId as keyof Request, val);
+                                                        setEditingCell(null);
+                                                        setEditValue('');
+                                                    }}
+                                                    onCancel={() => {
+                                                        setEditingCell(null);
+                                                        setEditValue('');
+                                                    }}
+                                                />
+                                            ) : (
+                                                <>
+                                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                    {isEditing && isTextarea && (
+                                                        <InlineEditor
+                                                            value={editValue}
+                                                            onChange={setEditValue}
+                                                            editorType="textarea"
+                                                            onSave={(val) => {
+                                                                onCellSave?.(row.original.requestId, columnId as keyof Request, val);
+                                                                setEditingCell(null);
+                                                                setEditValue('');
+                                                            }}
+                                                            onCancel={() => {
+                                                                setEditingCell(null);
+                                                                setEditValue('');
+                                                            }}
+                                                        />
+                                                    )}
+                                                    {!isEditing && isEditable && (
+                                                        <button
+                                                            className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 rounded bg-gray-200/80 text-gray-500 hover:text-gray-700 hover:bg-gray-300 opacity-0 group-hover/cell:opacity-100 transition-opacity z-10"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setEditingCell({ rowId: row.id, columnId });
+                                                                setEditValue(String(row.original[columnId as keyof Request] ?? ''));
+                                                            }}
+                                                        >
+                                                            <PencilIcon />
+                                                        </button>
+                                                    )}
+                                                </>
+                                            )}
                                         </td>
                                     );
                                 })}

@@ -12,6 +12,7 @@ function App() {
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [initialView, setInitialView] = useState<'request' | 'order'>('request');
+  const [focusField, setFocusField] = useState<keyof Request | null>(null);
   const [initialRequests] = useState<Request[]>(() => generateData(100));
   const [requestsData, setRequestsData] = useState<Request[]>(initialRequests);
   const [ordersData, setOrdersData] = useState<Order[]>(() => generateOrders(initialRequests));
@@ -19,6 +20,16 @@ function App() {
   const handleSaveRequest = (updatedRequest: Request) => {
     setRequestsData(prev => 
       prev.map(req => req.requestId === updatedRequest.requestId ? updatedRequest : req)
+    );
+  };
+
+  const handleCellSave = (requestId: string, field: keyof Request, value: string) => {
+    setRequestsData(prev =>
+      prev.map(req =>
+        req.requestId === requestId
+          ? { ...req, [field]: value }
+          : req
+      )
     );
   };
 
@@ -46,6 +57,7 @@ function App() {
     setSelectedRequest(null);
     setSelectedOrder(null);
     setInitialView('request');
+    setFocusField(null);
   };
 
   const tabs: { key: Tab; label: string }[] = [
@@ -88,11 +100,13 @@ function App() {
         {activeTab === 'requests' && (
           <Table
             data={requestsData}
-            onRowClick={(request) => {
+            onCellClick={(request, field) => {
               setSelectedRequest(request);
               setSelectedOrder(null);
               setInitialView('request');
+              setFocusField(field);
             }}
+            onCellSave={handleCellSave}
           />
         )}
         {activeTab === 'tasks' && (
@@ -111,6 +125,7 @@ function App() {
         orders={ordersData}
         initialOrder={selectedOrder}
         initialView={initialView}
+        focusField={focusField}
         onClose={handleClosePanel}
         onSave={handleSaveRequest}
         onSaveOrder={handleSaveOrder}
