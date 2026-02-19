@@ -172,6 +172,14 @@
   - Textarea uses ⌘/Ctrl+Enter to save (regular Enter inserts newline)
   - `savedRef` guard prevents double-save when select onChange + blur fire together
 
+### ✅ GitHub Pages Deployment Setup
+- **GitHub Actions Workflow**: Created automated deployment workflow (`.github/workflows/deploy.yml`) that:
+  - Builds the project on push to main branch
+  - Deploys to GitHub Pages automatically
+  - Uses environment variable for base path configuration
+- **Vite Configuration**: Updated `vite.config.ts` to support GitHub Pages base path via `BASE_PATH` environment variable
+- **Deployment**: Project is now ready for GitHub Pages hosting with automatic deployments
+
 ## Future Enhancements (Potential)
 
 - Filtering functionality for orders
