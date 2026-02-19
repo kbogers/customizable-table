@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Request, Order } from './mockData';
-import { requestTypes, fundingModels, specialties } from './mockData';
+import { requestTypes, fundingModels, specialties, durationUnits, formatDuration } from './mockData';
 
 interface DetailsPanelProps {
   request: Request | null;
@@ -101,6 +101,120 @@ const ReadOnlyField: React.FC<{ label: string; value: string | number; className
   </div>
 );
 
+const PencilIcon = () => (
+  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+  </svg>
+);
+
+const DurationField: React.FC<{
+  label: string;
+  durationValue: number;
+  durationUnit: Order['order_duration_unit'];
+  onSave: (value: number, unit: Order['order_duration_unit']) => void;
+}> = ({ label, durationValue, durationUnit, onSave }) => {
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [editValue, setEditValue] = React.useState(String(durationValue));
+  const [editUnit, setEditUnit] = React.useState<Order['order_duration_unit']>(durationUnit);
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    setEditValue(String(durationValue));
+    setEditUnit(durationUnit);
+  }, [durationValue, durationUnit]);
+
+  React.useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
+
+  const handleSave = () => {
+    setIsEditing(false);
+    const num = parseInt(editValue, 10);
+    if (!isNaN(num) && num > 0 && (num !== durationValue || editUnit !== durationUnit)) {
+      onSave(num, editUnit);
+    } else {
+      // Revert on invalid input
+      setEditValue(String(durationValue));
+      setEditUnit(durationUnit);
+    }
+  };
+
+  const handleCancel = () => {
+    setEditValue(String(durationValue));
+    setEditUnit(durationUnit);
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSave();
+    }
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      handleCancel();
+    }
+  };
+
+  // Only save when focus leaves the entire container (not when moving between input ↔ select)
+  const handleContainerBlur = (e: React.FocusEvent) => {
+    if (containerRef.current && !containerRef.current.contains(e.relatedTarget as Node)) {
+      handleSave();
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <div className="flex items-center justify-between py-1.5">
+        <span className="text-sm text-[#666967] shrink-0">{label}</span>
+        <div ref={containerRef} className="flex items-center gap-1.5" onBlur={handleContainerBlur}>
+          <input
+            ref={inputRef}
+            type="number"
+            min="1"
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="w-16 px-2 py-0.5 text-sm font-medium text-[#012d20] text-right border border-[#919392] rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-[#007c50] focus:border-transparent"
+          />
+          <select
+            value={editUnit}
+            onChange={(e) => setEditUnit(e.target.value as Order['order_duration_unit'])}
+            onKeyDown={handleKeyDown}
+            className="px-2 py-0.5 text-sm font-medium text-[#012d20] border border-[#919392] rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-[#007c50] focus:border-transparent"
+          >
+            {durationUnits.map((u) => (
+              <option key={u} value={u}>{u}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="group/edit flex items-center justify-between py-1.5">
+      <span className="text-sm text-[#666967] shrink-0">{label}</span>
+      <div className="flex items-center gap-1.5">
+        <button
+          onClick={() => setIsEditing(true)}
+          className="p-1 rounded hover:bg-gray-100 text-[#919392] opacity-0 group-hover/edit:opacity-100 transition-opacity"
+          title="Edit"
+        >
+          <PencilIcon />
+        </button>
+        <span className="text-sm font-medium text-[#012d20] text-right">
+          {formatDuration(durationValue, durationUnit)}
+        </span>
+      </div>
+    </div>
+  );
+};
+
 const OrderDetailsView: React.FC<OrderDetailsViewProps> = ({ order, request: _request, onBack, onSave, isClosing = false }) => {
   const [notes, setNotes] = React.useState(order.notes || '');
 
@@ -161,7 +275,16 @@ const OrderDetailsView: React.FC<OrderDetailsViewProps> = ({ order, request: _re
         {/* Order Details */}
         <div className="divide-y divide-gray-100">
           <ReadOnlyField label="Quantity" value={order.quantity} />
-          <ReadOnlyField label="Weeks ordered" value={order.weeks_ordered} />
+          <DurationField
+            label="Duration"
+            durationValue={order.order_duration_value}
+            durationUnit={order.order_duration_unit}
+            onSave={(value, unit) => {
+              if (onSave) {
+                onSave({ ...order, order_duration_value: value, order_duration_unit: unit });
+              }
+            }}
+          />
           <ReadOnlyField label="Order number" value={order.order_number} />
           <ReadOnlyField label="Tracking number" value={order.order_tracking_number} />
           <ReadOnlyField label="Shipment order #" value={order.shipment_order_number} />
@@ -261,6 +384,16 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
       setActiveTab('orders'); // Switch to orders tab when opening with an order
     }
   }, [initialOrder, initialView]);
+
+  // Keep selectedOrder in sync when orders data changes (e.g. after inline edits)
+  React.useEffect(() => {
+    if (selectedOrder) {
+      const updated = orders.find(o => o.order_number === selectedOrder.order_number);
+      if (updated && updated !== selectedOrder) {
+        setSelectedOrder(updated);
+      }
+    }
+  }, [orders]);
 
   // Mark that the request panel has animated in after initial mount
   React.useEffect(() => {
@@ -818,7 +951,8 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
                         status_updated_at: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
                         order_tracking_number: '',
                         quantity: 0,
-                        weeks_ordered: 0,
+                        order_duration_value: 0,
+                        order_duration_unit: 'weeks',
                         shipment_order_number: '',
                         order_received_on: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
                         order_created_on: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
@@ -908,7 +1042,7 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
                               <span className="text-sm text-[#012d20] w-5 text-right">{index + 1}.</span>
                               <span className="text-sm text-[#012d20]">{order.quantity} vials</span>
                               <span className="w-1 h-1 rounded-full bg-[#012d20]"></span>
-                              <span className="text-sm text-[#012d20]">{order.weeks_ordered} weeks</span>
+                              <span className="text-sm text-[#012d20]">{formatDuration(order.order_duration_value, order.order_duration_unit)}</span>
                             </div>
                             <div className="pl-7 flex items-center gap-2">
                               <span className="text-sm text-[#666967]">{statusText}</span>

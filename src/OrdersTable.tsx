@@ -11,6 +11,7 @@ import {
 } from '@tanstack/react-table';
 import type { SortingState, Column, Header, ColumnOrderState, VisibilityState, ColumnSizingState, GroupingState } from '@tanstack/react-table';
 import type { Order, Request } from './mockData';
+import { formatDuration } from './mockData';
 
 const columnHelper = createColumnHelper<Order>();
 
@@ -28,7 +29,7 @@ const columnConfig: ColumnConfigItem[] = [
     { key: 'order_number', label: 'Order #', group: 'core', defaultVisible: true },
     { key: 'order_status', label: 'Order Status', group: 'core', defaultVisible: true },
     { key: 'quantity', label: 'Quantity', group: 'core', defaultVisible: true },
-    { key: 'weeks_ordered', label: 'Weeks Ordered', group: 'core', defaultVisible: true },
+    { key: 'order_duration_value', label: 'Duration', group: 'core', defaultVisible: true },
 
     // Customer fields (hidden by default)
     { key: 'customer_order_number', label: 'Customer Order #', group: 'customer', defaultVisible: false },
@@ -180,9 +181,12 @@ const columns = [
         size: 100,
         minSize: 80,
     }),
-    columnHelper.accessor('weeks_ordered', {
-        header: 'Weeks Ordered',
-        cell: (info) => <TruncatedCell value={info.getValue()} />,
+    columnHelper.accessor('order_duration_value', {
+        header: 'Duration',
+        cell: (info) => {
+            const row = info.row.original;
+            return <TruncatedCell value={formatDuration(row.order_duration_value, row.order_duration_unit)} />;
+        },
         size: 120,
         minSize: 100,
     }),
@@ -946,6 +950,13 @@ export const OrdersTable: React.FC<OrdersTableProps> = ({ data, requests = [], o
 
     const [expanded, setExpanded] = useState<true | Record<string, boolean>>(true);
 
+    // When grouping is enabled, ensure all groups are expanded by default
+    useEffect(() => {
+        if (grouping.includes('requestId')) {
+            setExpanded(true);
+        }
+    }, [grouping]);
+
     const table = useReactTable({
         data,
         columns,
@@ -957,6 +968,7 @@ export const OrdersTable: React.FC<OrdersTableProps> = ({ data, requests = [], o
             grouping,
             expanded,
         },
+        autoResetExpanded: false,
         onExpandedChange: setExpanded,
         onSortingChange: setSorting,
         onColumnVisibilityChange: setColumnVisibility,
@@ -991,6 +1003,7 @@ export const OrdersTable: React.FC<OrdersTableProps> = ({ data, requests = [], o
             setGrouping([]);
         } else {
             setGrouping(['requestId']);
+            setExpanded(true); // Expand all groups by default when grouping is enabled
         }
     };
 

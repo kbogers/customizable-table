@@ -187,6 +187,26 @@
 - Bulk operations on orders
 - Advanced search
 - Tasks tab implementation
+### ✅ Groups Expanded by Default
+- When orders are grouped by request, all groups are now expanded by default
+- Toggling grouping on always resets the expanded state to fully expanded (via `setExpanded(true)`)
+- Added `autoResetExpanded: false` to prevent TanStack Table from resetting expanded state on data changes
+- Added `useEffect` that watches `grouping` state and sets `expanded` to `true` whenever grouping includes 'requestId'
+
+### ✅ Duration Field (replaces Weeks Ordered)
+- **Decision**: Replaced single `weeks_ordered: number` with compound `order_duration_value: number` + `order_duration_unit: 'days' | 'weeks' | 'months'` to support flexible time units
+- **Data model**: Updated `Order` interface in `mockData.ts` with the two new fields
+- **Helper utilities**: Added `durationToDays()`, `formatDuration()`, and exported `durationUnits` array for reuse
+- **Mock data**: `generateOrders()` now randomly assigns days (7–90), weeks (2–12), or months (1–6) per order
+- **Table column**: Renamed from "Weeks Ordered" to "Duration", displays formatted string like "3 weeks", "14 days", "2 months"
+- **Details panel**: Created `DurationField` component with hover-to-edit pattern:
+  - Pencil icon appears on hover (opacity transition), clicking enters inline edit mode
+  - Edit mode shows a number input + unit dropdown (days/weeks/months) side by side
+  - Save on Enter or blur, cancel on Escape
+  - Saves immediately via `onSave` callback, updating both value and unit
+- **Order list summary**: Updated to show formatted duration (e.g. "14 days" instead of "3 weeks")
+- **New order creation**: Defaults to `order_duration_value: 0, order_duration_unit: 'weeks'`
+
 - Real-time data updates
 - Pagination for large datasets
 - Details Panel: Implement other tabs (Phases, Orders, Documents, Comments)

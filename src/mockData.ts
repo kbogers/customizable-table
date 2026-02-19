@@ -159,7 +159,8 @@ export interface Order {
   status_updated_at: string;
   order_tracking_number: string;
   quantity: number;
-  weeks_ordered: number;
+  order_duration_value: number;
+  order_duration_unit: 'days' | 'weeks' | 'months';
   shipment_order_number: string;
 
   // ORDER DATA - Dates
@@ -192,22 +193,38 @@ export const eapApprovalStatuses: Order['eap_dossier_approval_status'][] = [
   'Under Review',
 ];
 
+export const durationUnits: Order['order_duration_unit'][] = ['days', 'weeks', 'months'];
+
+// Convert a duration to days for calculation purposes
+export const durationToDays = (value: number, unit: Order['order_duration_unit']): number => {
+  switch (unit) {
+    case 'days': return value;
+    case 'weeks': return value * 7;
+    case 'months': return value * 30;
+  }
+};
+
+// Format duration for display (e.g. "3 weeks", "14 days")
+export const formatDuration = (value: number, unit: Order['order_duration_unit']): string => {
+  return `${value} ${unit}`;
+};
+
 // Helper function to calculate dates
-const calculateReminderDate = (lastOrderDate: Date | null, weeksOrdered: number): Date => {
+const calculateReminderDate = (lastOrderDate: Date | null, durationDays: number): Date => {
   if (!lastOrderDate) {
     return faker.date.future({ years: 1 });
   }
   const reminderDate = new Date(lastOrderDate);
-  reminderDate.setDate(reminderDate.getDate() + (weeksOrdered * 7) - 7); // 1 week before next order
+  reminderDate.setDate(reminderDate.getDate() + durationDays - 7); // 1 week before next order
   return reminderDate;
 };
 
-const calculateNextOrderDate = (lastOrderDate: Date | null, weeksOrdered: number): Date => {
+const calculateNextOrderDate = (lastOrderDate: Date | null, durationDays: number): Date => {
   if (!lastOrderDate) {
     return faker.date.future({ years: 1 });
   }
   const nextDate = new Date(lastOrderDate);
-  nextDate.setDate(nextDate.getDate() + (weeksOrdered * 7));
+  nextDate.setDate(nextDate.getDate() + durationDays);
   return nextDate;
 };
 
@@ -225,9 +242,15 @@ export const generateOrders = (requests: Request[], ordersPerRequest: number = 3
         ? faker.date.between({ from: lastOrderDate, to: new Date() })
         : faker.date.recent({ days: 180 });
       
-      const weeksOrdered = faker.number.int({ min: 2, max: 12 });
-      const orderReminderDate = calculateReminderDate(lastOrderDate, weeksOrdered);
-      const nextOrderExpectedDate = calculateNextOrderDate(orderCreatedOn, weeksOrdered);
+      const durationUnit = faker.helpers.arrayElement(durationUnits);
+      const durationValue = durationUnit === 'days'
+        ? faker.number.int({ min: 7, max: 90 })
+        : durationUnit === 'weeks'
+          ? faker.number.int({ min: 2, max: 12 })
+          : faker.number.int({ min: 1, max: 6 });
+      const durationDays = durationToDays(durationValue, durationUnit);
+      const orderReminderDate = calculateReminderDate(lastOrderDate, durationDays);
+      const nextOrderExpectedDate = calculateNextOrderDate(orderCreatedOn, durationDays);
       
       const orderStatus = faker.helpers.arrayElement(orderStatuses);
       const orderApprovedOn = orderStatus !== 'Pending' 
@@ -268,7 +291,8 @@ export const generateOrders = (requests: Request[], ordersPerRequest: number = 3
         status_updated_at: faker.date.recent({ days: 30 }).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
         order_tracking_number: Math.random() > 0.3 ? faker.string.alphanumeric(12).toUpperCase() : '',
         quantity: faker.number.int({ min: 1, max: 50 }),
-        weeks_ordered: weeksOrdered,
+        order_duration_value: durationValue,
+        order_duration_unit: durationUnit,
         shipment_order_number: ['Shipped', 'Delivered'].includes(orderStatus)
           ? `SHIP-${faker.string.alphanumeric(8).toUpperCase()}`
           : '',
