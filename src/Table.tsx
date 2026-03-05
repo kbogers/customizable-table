@@ -584,17 +584,6 @@ const ColumnMenu: React.FC<ColumnMenuProps> = ({ column, allColumns, onClose, po
             className="fixed bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-[1000] min-w-[180px]"
             style={{ top: position.top, left: position.left }}
         >
-            <button
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 active:bg-gray-100 flex items-center gap-2"
-                onClick={() => {
-                    // Filter functionality placeholder
-                    console.log('Filter by:', column.id);
-                    onClose();
-                }}
-            >
-                <FilterIcon />
-                Filter by {getColumnLabel(column.id)}
-            </button>
             {isPinned ? (
                 <button
                     className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 active:bg-gray-100 flex items-center gap-2"
@@ -884,6 +873,13 @@ const HeaderCell: React.FC<HeaderCellProps> = ({
                     }}
                     onMouseDown={(e) => e.stopPropagation()}
                     draggable={false}
+                    title={
+                        sortDirection === 'asc' 
+                            ? `Sorted ascending - Click to sort descending by ${getColumnLabel(header.column.id)}`
+                            : sortDirection === 'desc'
+                            ? `Sorted descending - Click to remove sort`
+                            : `Sort by ${getColumnLabel(header.column.id)}`
+                    }
                 >
                     {sortDirection === 'asc' ? (
                         <SortAscIcon />
@@ -892,6 +888,22 @@ const HeaderCell: React.FC<HeaderCellProps> = ({
                     ) : (
                         <SortNeutralIcon />
                     )}
+                </button>
+
+                {/* Filter button - stops drag propagation */}
+                <button
+                    className={`p-1 rounded hover:bg-gray-200 active:bg-gray-300 transition-all duration-75 flex-shrink-0 relative z-20 ${showHoverState ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        // Filter functionality - same as in ColumnMenu
+                        console.log('Filter by:', header.column.id);
+                        // TODO: Implement actual filter functionality
+                    }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    draggable={false}
+                    title={`Filter by ${getColumnLabel(header.column.id)}`}
+                >
+                    <FilterIcon />
                 </button>
 
                 {/* More options button */}
