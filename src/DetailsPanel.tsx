@@ -32,11 +32,6 @@ const ChevronDownIcon = () => (
   </svg>
 );
 
-const ChevronUpIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-  </svg>
-);
 
 const CalendarIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -44,11 +39,6 @@ const CalendarIcon = () => (
   </svg>
 );
 
-const AddIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-  </svg>
-);
 
 const InfoIcon = () => (
   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -66,6 +56,24 @@ const KinaxisAvatar = () => (
   <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-blue-500 text-[9px] font-bold text-white leading-none shrink-0">
     K
   </span>
+);
+
+const CheckCircleIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+const ArrowRightIcon = () => (
+  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+    <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z" />
+  </svg>
+);
+
+const ArticleIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+  </svg>
 );
 
 // Order Details View Component - rendered as overlay on top of request panel
@@ -216,6 +224,7 @@ const DurationField: React.FC<{
 };
 
 const OrderDetailsView: React.FC<OrderDetailsViewProps> = ({ order, request: _request, onBack, onSave, isClosing = false }) => {
+  // _request is part of the interface but not used in this view
   const [notes, setNotes] = React.useState(order.notes || '');
 
   React.useEffect(() => {
@@ -363,8 +372,9 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
   onClose,
   onSave,
   onSaveOrder,
-  onCreateOrder
+  onCreateOrder: _onCreateOrder
 }) => {
+  // _onCreateOrder is part of the interface but not used in the new design
   const [activeTab, setActiveTab] = React.useState<Tab>('details');
   const [panelView, setPanelView] = React.useState<PanelView>(initialView);
   const [selectedOrder, setSelectedOrder] = React.useState<Order | null>(initialOrder);
@@ -373,8 +383,6 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
   const [isOrderClosing, setIsOrderClosing] = React.useState(false);
   // Track if the request panel has already been shown (to avoid re-animating)
   const [hasAnimatedIn, setHasAnimatedIn] = React.useState(false);
-  // Track which orders are expanded in the orders list
-  const [expandedOrders, setExpandedOrders] = React.useState<Set<string>>(new Set());
 
   // Update panel view and selected order when initial props change
   React.useEffect(() => {
@@ -393,7 +401,7 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
         setSelectedOrder(updated);
       }
     }
-  }, [orders]);
+  }, [orders, selectedOrder]);
 
   // Mark that the request panel has animated in after initial mount
   React.useEffect(() => {
@@ -881,11 +889,11 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
             <div className="flex flex-col">
               {/* Planning Section */}
               <div className="px-6 pt-4 pb-2">
-                <h3 className="text-lg font-semibold text-[#012d20] tracking-[-0.25px] mb-2">
+                <h3 className="text-lg font-semibold text-[#012d20] tracking-[-0.25px]">
                   Planning
                 </h3>
               </div>
-              <div className="px-6 pb-4 border-b border-gray-200 flex gap-4">
+              <div className="px-6 pb-4 pt-2 flex gap-4">
                 <div className="flex-1 flex flex-col gap-1">
                   <div className="flex items-center gap-1 pb-1">
                     <label className="text-sm font-semibold text-[#012d20]">
@@ -925,53 +933,19 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
                   </div>
                 </div>
               </div>
+              {/* Add note link */}
+              <div className="px-6 pb-4 flex items-center gap-2">
+                <ArticleIcon />
+                <button className="text-sm font-medium text-[#0771d2] underline">
+                  Add note
+                </button>
+              </div>
 
               {/* Orders List Section */}
-              <div className="px-6 pt-4 pb-2 flex items-center justify-between">
+              <div className="px-6 pt-4 pb-2">
                 <h3 className="text-lg font-semibold text-[#012d20] tracking-[-0.25px]">
                   Orders
                 </h3>
-                <button
-                  onClick={() => {
-                    // Create new order
-                    if (onCreateOrder && request) {
-                      const newOrder: Order = {
-                        requestId: request.requestId,
-                        customer_order_number: '',
-                        customer_party_id: '',
-                        customer_party_name: '',
-                        customer_party_address: '',
-                        eap_dossier_number: request.eapDossierNumber || '',
-                        eap_dossier_approval_status: 'Pending',
-                        eap_dossier_date_of_approval: '',
-                        order_reminder_date: '',
-                        next_order_expected_date: '',
-                        order_number: `ORD-${Date.now()}`,
-                        order_status: 'Pending',
-                        status_updated_at: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-                        order_tracking_number: '',
-                        quantity: 0,
-                        order_duration_value: 0,
-                        order_duration_unit: 'weeks',
-                        shipment_order_number: '',
-                        order_received_on: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-                        order_created_on: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-                        order_approved_on: '',
-                        order_shipped_on: '',
-                        order_delivered_on: '',
-                        notes: '',
-                        source: 'manual',
-                      };
-                      onCreateOrder(newOrder);
-                      setSelectedOrder(newOrder);
-                      setPanelView('order');
-                    }
-                  }}
-                  className="flex items-center gap-2 px-3 py-2 border border-[#919392] rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <AddIcon />
-                  <span className="text-sm font-semibold text-[#012d20]">Add order</span>
-                </button>
               </div>
 
               {/* Orders List */}
@@ -982,134 +956,119 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
                   </div>
                 ) : (
                   requestOrders.map((order, index) => {
-                    const statusText = order.order_status === 'Delivered' && order.order_delivered_on
-                      ? `Delivered ${order.order_delivered_on}`
-                      : order.order_status === 'Shipped' && order.order_shipped_on
-                        ? `Shipped ${order.order_shipped_on}`
-                        : order.order_status === 'Approved' && order.order_approved_on
-                          ? `Approved ${order.order_approved_on}`
-                          : `Created ${order.order_created_on}`;
-
-                    const isExpanded = expandedOrders.has(order.order_number);
-                    
-                    const toggleExpand = (e: React.MouseEvent) => {
-                      e.stopPropagation();
-                      setExpandedOrders(prev => {
-                        const newSet = new Set(prev);
-                        if (newSet.has(order.order_number)) {
-                          newSet.delete(order.order_number);
-                        } else {
-                          newSet.add(order.order_number);
-                        }
-                        return newSet;
-                      });
+                    // Map order status to display status based on order progress
+                    // Open: Order created (not yet shipped)
+                    // Started: Warehouse got started on the shipment (shipped but not delivered)
+                    // Finished: Delivered
+                    const getDisplayStatus = (): { label: string; bg: string; border: string; text: string } => {
+                      if (order.order_delivered_on) {
+                        return { label: 'Finished', bg: 'bg-[#d4f6e2]', border: 'border-[#a4ebc1]', text: 'text-[#036240]' };
+                      } else if (order.order_shipped_on) {
+                        return { label: 'Started', bg: 'bg-[#e2f1ff]', border: 'border-[#c2e2ff]', text: 'text-[#054c8f]' };
+                      } else {
+                        // Order created but not yet shipped -> Open
+                        return { label: 'Open', bg: 'bg-[#f3edfa]', border: 'border-[#e7dbf3]', text: 'text-[#5b3573]' };
+                      }
                     };
 
-                    // Timeline steps based on the Dates section in Order Details
-                    // Each step: label, date value, whether it has a date
-                    const timelineSteps = [
-                      { label: 'Received', date: order.order_received_on, hasDate: !!order.order_received_on },
-                      { label: 'Created', date: order.order_created_on, hasDate: !!order.order_created_on },
-                      { label: 'Approved', date: order.order_approved_on, hasDate: !!order.order_approved_on },
-                      { label: 'Shipped', date: order.order_shipped_on, hasDate: !!order.order_shipped_on },
-                      { label: 'Delivered', date: order.order_delivered_on, hasDate: !!order.order_delivered_on },
-                    ];
-                    
-                    // Find the index of the last completed step (has a date)
-                    let lastCompletedIndex = -1;
-                    for (let i = timelineSteps.length - 1; i >= 0; i--) {
-                      if (timelineSteps[i].hasDate) {
-                        lastCompletedIndex = i;
-                        break;
+                    const displayStatus = getDisplayStatus();
+
+                    // Determine which status badge to show based on order progress
+                    // Open: "Order created [date]"
+                    // Started: "Shipped [date]" + "Tracking: [number]" (if available)
+                    // Finished: "Delivered [date]"
+                    const getStatusBadges = () => {
+                      const badges: Array<{ label: string; date: string; icon: 'check' | 'info'; isLink?: boolean }> = [];
+
+                      if (order.order_delivered_on) {
+                        // Finished: Show delivered date
+                        badges.push({ label: 'Delivered', date: order.order_delivered_on, icon: 'check' });
+                      } else if (order.order_shipped_on) {
+                        // Started: Show shipped date
+                        badges.push({ label: 'Shipped', date: order.order_shipped_on, icon: 'check' });
+                        // If tracking number exists, add it as a link
+                        if (order.order_tracking_number) {
+                          badges.push({ label: 'Tracking', date: order.order_tracking_number, icon: 'info', isLink: true });
+                        }
+                      } else if (order.order_created_on) {
+                        // Open: Show order created date
+                        badges.push({ label: 'Order created', date: order.order_created_on, icon: 'check' });
                       }
-                    }
+
+                      return badges;
+                    };
+
+                    const statusBadges = getStatusBadges();
+                    // Order numbers are displayed in reverse order (latest first, so Order 1 is the most recent)
+                    const orderNumber = `Order ${requestOrders.length - index}`;
 
                     return (
                       <div
                         key={order.order_number}
-                        className="border-b border-gray-200 bg-white"
+                        className="border-t border-gray-200 bg-white px-6 py-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                        onClick={() => {
+                          setSelectedOrder(order);
+                          setPanelView('order');
+                        }}
                       >
-                        {/* Order Header */}
-                        <div
-                          className="px-4 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
-                          onClick={() => {
-                            setSelectedOrder(order);
-                            setPanelView('order');
-                          }}
-                        >
-                          <div className="flex flex-col gap-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm text-[#012d20] w-5 text-right">{index + 1}.</span>
-                              <span className="text-sm text-[#012d20]">{order.quantity} vials</span>
-                              <span className="w-1 h-1 rounded-full bg-[#012d20]"></span>
-                              <span className="text-sm text-[#012d20]">{formatDuration(order.order_duration_value, order.order_duration_unit)}</span>
+                        <div className="flex flex-col gap-4">
+                          {/* Order Header */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex flex-1 items-center gap-2">
+                              <p className="text-sm font-medium text-[#4c504e]">
+                                {orderNumber}
+                              </p>
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full border text-xs font-medium ${displayStatus.bg} ${displayStatus.border} ${displayStatus.text}`}>
+                                {displayStatus.label}
+                              </span>
                             </div>
-                            <div className="pl-7 flex items-center gap-2">
-                              <span className="text-sm text-[#666967]">{statusText}</span>
-                              {order.source === 'kinaxis' && (
-                                <span className="inline-flex items-center gap-1 pl-0.5 pr-1.5 py-0.5 rounded-full bg-[#f3f4f3] text-[11px] text-[#666967]" title="Synced from Kinaxis OMS">
-                                  <KinaxisAvatar />
-                                  Kinaxis
-                                </span>
-                              )}
+                            <ArrowRightIcon />
+                          </div>
+
+                          {/* Quantity and Duration */}
+                          <div>
+                            <p className="text-lg font-medium text-[#012d20] tracking-[-0.25px]">
+                              {order.quantity} vials ({formatDuration(order.order_duration_value, order.order_duration_unit)})
+                            </p>
+                          </div>
+
+                          {/* Status Badges */}
+                          {statusBadges.length > 0 && (
+                            <div className="flex gap-2 items-center flex-wrap">
+                              {statusBadges.map((badge, badgeIndex) => (
+                                <div
+                                  key={badgeIndex}
+                                  className="inline-flex items-center gap-2 h-7 px-2 py-1 bg-[#f5f6f6] rounded"
+                                >
+                                  {badge.icon === 'check' ? (
+                                    <CheckCircleIcon />
+                                  ) : (
+                                    <InfoIcon />
+                                  )}
+                                  {badge.isLink ? (
+                                    <span className="text-sm text-[#666967]">
+                                      Tracking:{' '}
+                                      <a
+                                        href="#"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          // Handle tracking link click
+                                        }}
+                                        className="text-sm font-medium text-[#0771d2] underline"
+                                      >
+                                        {badge.date}
+                                      </a>
+                                    </span>
+                                  ) : (
+                                    <span className="text-sm text-[#666967]">
+                                      {badge.label} {badge.date}
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
                             </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                // More options menu could go here
-                              }}
-                              className="p-2 rounded-full hover:bg-gray-200 transition-colors"
-                            >
-                              <MoreVertIcon />
-                            </button>
-                            <button
-                              onClick={toggleExpand}
-                              className="p-2 rounded-full hover:bg-gray-200 transition-colors text-gray-600"
-                            >
-                              {isExpanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
-                            </button>
-                          </div>
+                          )}
                         </div>
-
-                        {/* Expanded Content */}
-                        {isExpanded && (
-                          <div className="bg-white pb-4 pl-[25px] pr-4">
-                            <div className="flex gap-4">
-                              {/* Timeline Indicator - continuous bar aligned to labels */}
-                              <div className="flex flex-col items-center shrink-0 w-[3px] relative pb-4">
-                                {/* Full gray background bar */}
-                                <div className="w-full flex-1 bg-[#ededed] rounded-[3px]" />
-                                {/* Green overlay for completed portion - layered on top */}
-                                {lastCompletedIndex >= 0 && (
-                                  <div
-                                    className="absolute top-0 left-0 w-full bg-[#007c50] rounded-[3px]"
-                                    style={{
-                                      height: `calc(${(lastCompletedIndex / (timelineSteps.length - 1)) * 100}% + 10px)`,
-                                    }}
-                                  />
-                                )}
-                                {/* Endpoint dot at the very bottom */}
-                                <div className="absolute -bottom-[1px] left-1/2 -translate-x-1/2 w-[9px] h-[9px] rounded-full bg-[#d1d1d1] z-[2]" />
-                              </div>
-
-                              {/* Date Sections */}
-                              <div className="flex flex-1 flex-col gap-[24px]">
-                                {timelineSteps.map((step) => (
-                                  <div key={step.label} className="flex gap-2 items-center leading-[20px]">
-                                    <p className={`text-sm font-semibold w-[80px] shrink-0 ${step.hasDate ? 'text-[#012d20]' : 'text-[#666967]'}`}>
-                                      {step.label}
-                                    </p>
-                                    <p className={`text-sm font-medium ${step.hasDate ? 'text-[#012d20]' : 'text-[#666967]'}`}>
-                                      {step.hasDate ? step.date : 'Add date'}
-                                    </p>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        )}
                       </div>
                     );
                   })
