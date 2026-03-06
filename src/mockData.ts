@@ -230,18 +230,18 @@ const calculateNextOrderDate = (lastOrderDate: Date | null, durationDays: number
 
 export const generateOrders = (requests: Request[], ordersPerRequest: number = 3): Order[] => {
   const orders: Order[] = [];
-  
+
   requests.forEach((request) => {
     // Each request can have 0 to several orders
     const orderCount = Math.floor(Math.random() * (ordersPerRequest + 1));
-    
+
     let lastOrderDate: Date | null = null;
-    
+
     for (let i = 0; i < orderCount; i++) {
-      const orderCreatedOn: Date = lastOrderDate 
+      const orderCreatedOn: Date = lastOrderDate
         ? faker.date.between({ from: lastOrderDate, to: new Date() })
         : faker.date.recent({ days: 180 });
-      
+
       const durationUnit = faker.helpers.arrayElement(durationUnits);
       const durationValue = durationUnit === 'days'
         ? faker.number.int({ min: 7, max: 90 })
@@ -251,9 +251,9 @@ export const generateOrders = (requests: Request[], ordersPerRequest: number = 3
       const durationDays = durationToDays(durationValue, durationUnit);
       const orderReminderDate = calculateReminderDate(lastOrderDate, durationDays);
       const nextOrderExpectedDate = calculateNextOrderDate(orderCreatedOn, durationDays);
-      
+
       const orderStatus = faker.helpers.arrayElement(orderStatuses);
-      const orderApprovedOn = orderStatus !== 'Pending' 
+      const orderApprovedOn = orderStatus !== 'Pending'
         ? faker.date.between({ from: orderCreatedOn, to: new Date() })
         : '';
       const orderShippedOn = ['Shipped', 'Delivered'].includes(orderStatus)
@@ -262,29 +262,29 @@ export const generateOrders = (requests: Request[], ordersPerRequest: number = 3
       const orderDeliveredOn = orderStatus === 'Delivered'
         ? faker.date.between({ from: orderShippedOn || orderCreatedOn, to: new Date() })
         : '';
-      
+
       const eapApprovalDate = faker.helpers.arrayElement(eapApprovalStatuses) === 'Approved'
         ? faker.date.past({ years: 1 }).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
         : '';
 
       orders.push({
         requestId: request.requestId,
-        
+
         // CUSTOMER data
         customer_order_number: `CUST-${faker.string.alphanumeric(8).toUpperCase()}`,
         customer_party_id: `PARTY-${faker.string.numeric(6)}`,
         customer_party_name: faker.company.name(),
         customer_party_address: faker.location.streetAddress({ useFullAddress: true }),
-        
+
         // PATIENT data
         eap_dossier_number: request.eapDossierNumber || `EAP-${faker.string.numeric(6)}`,
         eap_dossier_approval_status: faker.helpers.arrayElement(eapApprovalStatuses),
         eap_dossier_date_of_approval: eapApprovalDate,
-        
+
         // Order planning data
         order_reminder_date: orderReminderDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
         next_order_expected_date: nextOrderExpectedDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-        
+
         // ORDER DATA - Identifiers
         order_number: `ORD-${faker.string.alphanumeric(8).toUpperCase()}`,
         order_status: orderStatus,
@@ -296,7 +296,7 @@ export const generateOrders = (requests: Request[], ordersPerRequest: number = 3
         shipment_order_number: ['Shipped', 'Delivered'].includes(orderStatus)
           ? `SHIP-${faker.string.alphanumeric(8).toUpperCase()}`
           : '',
-        
+
         // ORDER DATA - Dates
         order_received_on: orderCreatedOn.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
         order_created_on: orderCreatedOn.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
@@ -310,10 +310,10 @@ export const generateOrders = (requests: Request[], ordersPerRequest: number = 3
         // All generated orders come from Kinaxis OMS integration
         source: 'kinaxis',
       });
-      
+
       lastOrderDate = orderCreatedOn;
     }
   });
-  
+
   return orders;
 };

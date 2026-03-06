@@ -739,6 +739,103 @@ const calculatePreviewOrder = (
     return newOrder;
 };
 
+// Custom Tooltip Component with short delay
+interface TooltipProps {
+    text: string;
+    children: React.ReactElement;
+    delay?: number;
+}
+
+const Tooltip: React.FC<TooltipProps> = ({ text, children, delay = 200 }) => {
+    const [isVisible, setIsVisible] = useState(false);
+    const [isMounted, setIsMounted] = useState(false);
+    const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
+    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const elementRef = useRef<HTMLElement | null>(null);
+
+    const handleMouseEnter = (e: React.MouseEvent) => {
+        const element = e.currentTarget as HTMLElement;
+        elementRef.current = element;
+        
+        timeoutRef.current = setTimeout(() => {
+            const rect = element.getBoundingClientRect();
+            setPosition({
+                top: rect.bottom + 6,
+                left: rect.left + rect.width / 2,
+            });
+            setIsMounted(true);
+            // Trigger fade-in after mount
+            setTimeout(() => setIsVisible(true), 10);
+        }, delay);
+    };
+
+    const handleMouseLeave = () => {
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+        }
+        setIsVisible(false);
+        // Wait for fade-out before unmounting
+        setTimeout(() => {
+            setIsMounted(false);
+            setPosition(null);
+        }, 100);
+    };
+
+    useEffect(() => {
+        return () => {
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+            }
+        };
+    }, []);
+
+    // Update position on mouse move to keep tooltip aligned
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (isMounted && elementRef.current) {
+            const rect = elementRef.current.getBoundingClientRect();
+            setPosition({
+                top: rect.bottom + 6,
+                left: rect.left + rect.width / 2,
+            });
+        }
+    };
+
+    return (
+        <>
+            {React.cloneElement(children, {
+                onMouseEnter: (e: React.MouseEvent) => {
+                    handleMouseEnter(e);
+                    children.props.onMouseEnter?.(e);
+                },
+                onMouseLeave: (e: React.MouseEvent) => {
+                    handleMouseLeave();
+                    children.props.onMouseLeave?.(e);
+                },
+                onMouseMove: (e: React.MouseEvent) => {
+                    handleMouseMove(e);
+                    children.props.onMouseMove?.(e);
+                },
+            })}
+            {isMounted && position && createPortal(
+                <div
+                    className="fixed z-[2000] pointer-events-none"
+                    style={{
+                        top: position.top,
+                        left: position.left,
+                        transform: 'translateX(-50%)',
+                    }}
+                >
+                    <div className={`bg-gray-900 text-white text-xs px-2 py-1.5 rounded shadow-lg whitespace-nowrap transition-opacity duration-100 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
+                        {text}
+                    </div>
+                </div>,
+                document.body
+            )}
+        </>
+    );
+};
+
 // Header Cell Component
 interface HeaderCellProps {
     header: Header<Request, unknown>;
@@ -865,15 +962,8 @@ const HeaderCell: React.FC<HeaderCellProps> = ({
                 </div>
 
                 {/* Sort button - stops drag propagation */}
-                <button
-                    className={`p-1 rounded hover:bg-gray-200 active:bg-gray-300 transition-all duration-75 flex-shrink-0 relative z-20 ${showHoverState || sortDirection ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        header.column.getToggleSortingHandler()?.(e);
-                    }}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    draggable={false}
-                    title={
+                <Tooltip
+                    text={
                         sortDirection === 'asc' 
                             ? `Sorted ascending - Click to sort descending by ${getColumnLabel(header.column.id)}`
                             : sortDirection === 'desc'
@@ -881,30 +971,43 @@ const HeaderCell: React.FC<HeaderCellProps> = ({
                             : `Sort by ${getColumnLabel(header.column.id)}`
                     }
                 >
-                    {sortDirection === 'asc' ? (
-                        <SortAscIcon />
-                    ) : sortDirection === 'desc' ? (
-                        <SortDescIcon />
-                    ) : (
-                        <SortNeutralIcon />
-                    )}
-                </button>
+                    <button
+                        className={`p-1 rounded hover:bg-gray-200 active:bg-gray-300 transition-all duration-75 flex-shrink-0 relative z-20 ${showHoverState || sortDirection ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            header.column.getToggleSortingHandler()?.(e);
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        draggable={false}
+                    >
+                        {sortDirection === 'asc' ? (
+                            <SortAscIcon />
+                        ) : sortDirection === 'desc' ? (
+                            <SortDescIcon />
+                        ) : (
+                            <SortNeutralIcon />
+                        )}
+                    </button>
+                </Tooltip>
 
                 {/* Filter button - stops drag propagation */}
-                <button
-                    className={`p-1 rounded hover:bg-gray-200 active:bg-gray-300 transition-all duration-75 flex-shrink-0 relative z-20 ${showHoverState ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        // Filter functionality - same as in ColumnMenu
-                        console.log('Filter by:', header.column.id);
-                        // TODO: Implement actual filter functionality
-                    }}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    draggable={false}
-                    title={`Filter by ${getColumnLabel(header.column.id)}`}
+                <Tooltip
+                    text={`Click to filter rows by ${getColumnLabel(header.column.id)}`}
                 >
-                    <FilterIcon />
-                </button>
+                    <button
+                        className={`p-1 rounded hover:bg-gray-200 active:bg-gray-300 transition-all duration-75 flex-shrink-0 relative z-20 ${showHoverState ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            // Filter functionality - same as in ColumnMenu
+                            console.log('Filter by:', header.column.id);
+                            // TODO: Implement actual filter functionality
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        draggable={false}
+                    >
+                        <FilterIcon />
+                    </button>
+                </Tooltip>
 
                 {/* More options button */}
                 <button
