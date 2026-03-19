@@ -66,6 +66,12 @@
   - Calculates order_reminder_date and next_order_expected_date based on order history
   - Generates realistic order statuses and dates based on order lifecycle
 
+### ✅ Requests table: owner filter & toolbar (merged to `main`, Mar 2025)
+- **Branch**: `reset-filters` merged into `main` (fast-forward to `5fcf0f3`).
+- **Owner filter**: Header filter on Owner column with searchable multi-select; active filter count in toolbar with clear-all; row data filtered via `selectedOwners` while preserving sort/column state separately from filters.
+- **Columns dropdown**: Reset (view settings) moved into column visibility dropdown; standalone refresh icon removed from toolbar.
+- **Deploy**: Fixed strict TypeScript issues for Vercel (`NodeJS.Timeout` → `ReturnType<typeof setTimeout>`, Tooltip `children` typing, removed unused symbols).
+
 ## Technical Decisions
 
 1. **Component Structure**: Created separate `OrdersTable.tsx` component to maintain separation of concerns while reusing table functionality patterns from `Table.tsx`
