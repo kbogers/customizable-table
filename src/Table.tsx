@@ -327,12 +327,6 @@ const SearchIcon = () => (
     </svg>
 );
 
-const RefreshIcon = () => (
-    <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-    </svg>
-);
-
 const XIcon = () => (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -619,10 +613,6 @@ const OwnerFilter: React.FC<OwnerFilterProps> = ({
 
     const handleClearAll = () => {
         onSelectionChange(new Set());
-    };
-
-    const handleSelectAll = () => {
-        onSelectionChange(new Set(filteredOwners));
     };
 
     return createPortal(
@@ -914,7 +904,7 @@ const calculatePreviewOrder = (
 // Custom Tooltip Component with short delay
 interface TooltipProps {
     text: string;
-    children: React.ReactElement;
+    children: React.ReactElement<{ onMouseEnter?: (e: React.MouseEvent) => void; onMouseLeave?: (e: React.MouseEvent) => void; onMouseMove?: (e: React.MouseEvent) => void }>;
     delay?: number;
 }
 
@@ -922,7 +912,7 @@ const Tooltip: React.FC<TooltipProps> = ({ text, children, delay = 200 }) => {
     const [isVisible, setIsVisible] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
     const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
-    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const elementRef = useRef<HTMLElement | null>(null);
 
     const handleMouseEnter = (e: React.MouseEvent) => {
@@ -963,7 +953,7 @@ const Tooltip: React.FC<TooltipProps> = ({ text, children, delay = 200 }) => {
     }, []);
 
     // Update position on mouse move to keep tooltip aligned
-    const handleMouseMove = (e: React.MouseEvent) => {
+    const handleMouseMove = (_e: React.MouseEvent) => {
         if (isMounted && elementRef.current) {
             const rect = elementRef.current.getBoundingClientRect();
             setPosition({
@@ -1023,7 +1013,6 @@ interface HeaderCellProps {
     setResizingColumnId: React.Dispatch<React.SetStateAction<string | null>>;
     allColumns: Column<Request, unknown>[];
     ownerFilterActive: boolean;
-    onFilterClick: (e: React.MouseEvent) => void;
     data: Request[];
     selectedOwners: Set<string>;
     onOwnerSelectionChange: (selected: Set<string>) => void;
@@ -1042,7 +1031,6 @@ const HeaderCell: React.FC<HeaderCellProps> = ({
     setResizingColumnId,
     allColumns,
     ownerFilterActive,
-    onFilterClick,
     data,
     selectedOwners,
     onOwnerSelectionChange
@@ -1525,7 +1513,6 @@ export const Table: React.FC<TableProps> = ({ data, onRowClick, onCellClick, onC
                                         setResizingColumnId={setResizingColumnId}
                                         allColumns={table.getAllLeafColumns()}
                                         ownerFilterActive={selectedOwners.size > 0}
-                                        onFilterClick={() => {}}
                                         data={data}
                                         selectedOwners={selectedOwners}
                                         onOwnerSelectionChange={setSelectedOwners}
