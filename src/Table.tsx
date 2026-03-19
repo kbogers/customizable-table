@@ -333,6 +333,12 @@ const RefreshIcon = () => (
     </svg>
 );
 
+const XIcon = () => (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+    </svg>
+);
+
 const CalendarViewWeekIcon = () => (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
@@ -544,6 +550,151 @@ const InlineEditor: React.FC<InlineEditorProps> = ({
     );
 };
 
+// Owner Filter Component
+interface OwnerFilterProps {
+    data: Request[];
+    selectedOwners: Set<string>;
+    onSelectionChange: (selected: Set<string>) => void;
+    onClose: () => void;
+    position: { top: number; left: number };
+}
+
+const OwnerFilter: React.FC<OwnerFilterProps> = ({ 
+    data, 
+    selectedOwners, 
+    onSelectionChange, 
+    onClose,
+    position 
+}) => {
+    const filterRef = useRef<HTMLDivElement>(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const searchInputRef = useRef<HTMLInputElement>(null);
+
+    // Get unique owners from data
+    const uniqueOwners = useMemo(() => {
+        const owners = new Set<string>();
+        data.forEach(item => {
+            if (item.owner) {
+                owners.add(item.owner);
+            }
+        });
+        return Array.from(owners).sort();
+    }, [data]);
+
+    // Filter owners based on search query
+    const filteredOwners = useMemo(() => {
+        if (!searchQuery.trim()) {
+            return uniqueOwners;
+        }
+        const query = searchQuery.toLowerCase();
+        return uniqueOwners.filter(owner => 
+            owner.toLowerCase().includes(query)
+        );
+    }, [uniqueOwners, searchQuery]);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (filterRef.current && !filterRef.current.contains(event.target as Node)) {
+                onClose();
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [onClose]);
+
+    useEffect(() => {
+        // Focus search input when filter opens
+        searchInputRef.current?.focus();
+    }, []);
+
+    const handleToggleOwner = (owner: string) => {
+        const newSelection = new Set(selectedOwners);
+        if (newSelection.has(owner)) {
+            newSelection.delete(owner);
+        } else {
+            newSelection.add(owner);
+        }
+        onSelectionChange(newSelection);
+    };
+
+    const handleClearAll = () => {
+        onSelectionChange(new Set());
+    };
+
+    const handleSelectAll = () => {
+        onSelectionChange(new Set(filteredOwners));
+    };
+
+    return createPortal(
+        <div
+            ref={filterRef}
+            className="fixed bg-white border border-gray-300 rounded-lg shadow-lg z-[1000] w-[320px] max-h-[400px] flex flex-col"
+            style={{ top: position.top, left: position.left }}
+        >
+            {/* Search bar */}
+            <div className="p-3 border-b border-gray-200">
+                <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    <input
+                        ref={searchInputRef}
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search"
+                        className="w-full pl-10 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                </div>
+            </div>
+
+            {/* Clear all button */}
+            {selectedOwners.size > 0 && (
+                <div className="px-3 py-2 border-b border-gray-200 flex justify-end">
+                    <button
+                        onClick={handleClearAll}
+                        className="text-sm text-blue-600 underline hover:text-blue-800"
+                    >
+                        Clear all
+                    </button>
+                </div>
+            )}
+
+            {/* Owner list */}
+            <div className="overflow-y-auto flex-1 py-2">
+                {filteredOwners.length === 0 ? (
+                    <div className="px-4 py-8 text-center text-sm text-gray-500">
+                        No owners found
+                    </div>
+                ) : (
+                    <div className="px-2">
+                        {filteredOwners.map((owner) => {
+                            const isSelected = selectedOwners.has(owner);
+                            return (
+                                <label
+                                    key={owner}
+                                    className="flex items-center gap-2 px-2 py-2 hover:bg-gray-50 cursor-pointer rounded"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={isSelected}
+                                        onChange={() => handleToggleOwner(owner)}
+                                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                                    />
+                                    <span className="text-sm text-gray-900 flex-1">{owner}</span>
+                                </label>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
+        </div>,
+        document.body
+    );
+};
+
 // Column Menu Component
 interface ColumnMenuProps {
     column: Column<Request, unknown>;
@@ -623,9 +774,10 @@ const ColumnMenu: React.FC<ColumnMenuProps> = ({ column, allColumns, onClose, po
 interface ColumnVisibilityDropdownProps {
     columns: Column<Request, unknown>[];
     hiddenCount: number;
+    onReset: () => void;
 }
 
-const ColumnVisibilityDropdown: React.FC<ColumnVisibilityDropdownProps> = ({ columns, hiddenCount: _hiddenCount }) => {
+const ColumnVisibilityDropdown: React.FC<ColumnVisibilityDropdownProps> = ({ columns, hiddenCount: _hiddenCount, onReset }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -658,6 +810,11 @@ const ColumnVisibilityDropdown: React.FC<ColumnVisibilityDropdownProps> = ({ col
         return groups;
     }, [columns]);
 
+    const handleResetClick = () => {
+        onReset();
+        setIsOpen(false);
+    };
+
     return (
         <div className="relative" ref={dropdownRef}>
             <button
@@ -671,28 +828,43 @@ const ColumnVisibilityDropdown: React.FC<ColumnVisibilityDropdownProps> = ({ col
                 <ChevronDownIcon />
             </button>
             {isOpen && (
-                <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-[1000] min-w-[260px] max-h-[400px] overflow-y-auto">
-                    {Object.entries(groupedColumns).map(([group, cols]) => (
-                        <div key={group}>
-                            <div className="px-4 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50">
-                                {groupLabels[group]}
+                <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-[1000] min-w-[260px] max-h-[400px] flex flex-col">
+                    {/* Scrollable column groups area */}
+                    <div className="overflow-y-auto py-2">
+                        {Object.entries(groupedColumns).map(([group, cols]) => (
+                            <div key={group}>
+                                <div className="px-4 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50">
+                                    {groupLabels[group]}
+                                </div>
+                                {cols.map((column) => (
+                                    <button
+                                        key={column.id}
+                                        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 active:bg-gray-100 flex items-center justify-between"
+                                        onClick={() => column.toggleVisibility()}
+                                    >
+                                        <span className={column.getIsVisible() ? '' : 'text-gray-400'}>{getColumnLabel(column.id)}</span>
+                                        {column.getIsVisible() ? (
+                                            <EyeIcon />
+                                        ) : (
+                                            <span className="text-gray-400"><EyeOffIcon /></span>
+                                        )}
+                                    </button>
+                                ))}
                             </div>
-                            {cols.map((column) => (
-                                <button
-                                    key={column.id}
-                                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 active:bg-gray-100 flex items-center justify-between"
-                                    onClick={() => column.toggleVisibility()}
-                                >
-                                    <span className={column.getIsVisible() ? '' : 'text-gray-400'}>{getColumnLabel(column.id)}</span>
-                                    {column.getIsVisible() ? (
-                                        <EyeIcon />
-                                    ) : (
-                                        <span className="text-gray-400"><EyeOffIcon /></span>
-                                    )}
-                                </button>
-                            ))}
-                        </div>
-                    ))}
+                        ))}
+                    </div>
+                    {/* Fixed reset view button at the bottom */}
+                    <div className="border-t border-gray-200">
+                        <button
+                            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 active:bg-gray-100 flex items-center gap-2"
+                            onClick={handleResetClick}
+                        >
+                            <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Reset view
+                        </button>
+                    </div>
                 </div>
             )}
         </div>
@@ -850,6 +1022,11 @@ interface HeaderCellProps {
     resizingColumnId: string | null;
     setResizingColumnId: React.Dispatch<React.SetStateAction<string | null>>;
     allColumns: Column<Request, unknown>[];
+    ownerFilterActive: boolean;
+    onFilterClick: (e: React.MouseEvent) => void;
+    data: Request[];
+    selectedOwners: Set<string>;
+    onOwnerSelectionChange: (selected: Set<string>) => void;
 }
 
 const HeaderCell: React.FC<HeaderCellProps> = ({ 
@@ -863,13 +1040,20 @@ const HeaderCell: React.FC<HeaderCellProps> = ({
     isDragging: isTableDragging,
     resizingColumnId,
     setResizingColumnId,
-    allColumns
+    allColumns,
+    ownerFilterActive,
+    onFilterClick,
+    data,
+    selectedOwners,
+    onOwnerSelectionChange
 }) => {
     const [isHovered, setIsHovered] = useState(false);
     const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
+    const [filterPosition, setFilterPosition] = useState<{ top: number; left: number } | null>(null);
     const headerRef = useRef<HTMLTableCellElement>(null);
     
     const isBeingDragged = dragState.draggedColumnId === header.column.id;
+    const isOwnerColumn = header.column.id === 'owner';
     
     // Only show hover state if not resizing any column and not dragging (unless this column is being dragged)
     const showHoverState = isHovered && !isAnyResizing && (!isTableDragging || isBeingDragged);
@@ -881,6 +1065,12 @@ const HeaderCell: React.FC<HeaderCellProps> = ({
         e.stopPropagation();
         const rect = (e.target as HTMLElement).getBoundingClientRect();
         setMenuPosition({ top: rect.bottom + 4, left: rect.left });
+    };
+
+    const handleFilterButtonClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const rect = (e.target as HTMLElement).getBoundingClientRect();
+        setFilterPosition({ top: rect.bottom + 4, left: rect.left });
     };
 
     const handleDragStart = (e: React.DragEvent) => {
@@ -959,55 +1149,58 @@ const HeaderCell: React.FC<HeaderCellProps> = ({
                             ? null
                             : flexRender(header.column.columnDef.header, header.getContext())}
                     </span>
+                    
+                    {/* Filter button - stops drag propagation */}
+                    {isOwnerColumn && (
+                        <Tooltip
+                            text={`Click to filter rows by ${getColumnLabel(header.column.id)}`}
+                        >
+                            <button
+                                className={`p-1 rounded transition-all duration-75 flex-shrink-0 relative z-20 ${
+                                    ownerFilterActive 
+                                        ? 'opacity-100 bg-blue-500 text-white hover:bg-blue-600' 
+                                        : showHoverState 
+                                            ? 'opacity-100 hover:bg-gray-200 active:bg-gray-300' 
+                                            : 'opacity-0 pointer-events-none'
+                                }`}
+                                onClick={handleFilterButtonClick}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                draggable={false}
+                            >
+                                <FilterIcon />
+                            </button>
+                        </Tooltip>
+                    )}
+
+                    {/* Sort button - stops drag propagation */}
+                    <Tooltip
+                        text={
+                            sortDirection === 'asc' 
+                                ? `Sorted ascending - Click to sort descending by ${getColumnLabel(header.column.id)}`
+                                : sortDirection === 'desc'
+                                ? `Sorted descending - Click to remove sort`
+                                : `Sort by ${getColumnLabel(header.column.id)}`
+                        }
+                    >
+                        <button
+                            className={`p-1 rounded hover:bg-gray-200 active:bg-gray-300 transition-all duration-75 flex-shrink-0 relative z-20 ${showHoverState || sortDirection ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                header.column.getToggleSortingHandler()?.(e);
+                            }}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            draggable={false}
+                        >
+                            {sortDirection === 'asc' ? (
+                                <SortAscIcon />
+                            ) : sortDirection === 'desc' ? (
+                                <SortDescIcon />
+                            ) : (
+                                <SortNeutralIcon />
+                            )}
+                        </button>
+                    </Tooltip>
                 </div>
-
-                {/* Sort button - stops drag propagation */}
-                <Tooltip
-                    text={
-                        sortDirection === 'asc' 
-                            ? `Sorted ascending - Click to sort descending by ${getColumnLabel(header.column.id)}`
-                            : sortDirection === 'desc'
-                            ? `Sorted descending - Click to remove sort`
-                            : `Sort by ${getColumnLabel(header.column.id)}`
-                    }
-                >
-                    <button
-                        className={`p-1 rounded hover:bg-gray-200 active:bg-gray-300 transition-all duration-75 flex-shrink-0 relative z-20 ${showHoverState || sortDirection ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            header.column.getToggleSortingHandler()?.(e);
-                        }}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        draggable={false}
-                    >
-                        {sortDirection === 'asc' ? (
-                            <SortAscIcon />
-                        ) : sortDirection === 'desc' ? (
-                            <SortDescIcon />
-                        ) : (
-                            <SortNeutralIcon />
-                        )}
-                    </button>
-                </Tooltip>
-
-                {/* Filter button - stops drag propagation */}
-                <Tooltip
-                    text={`Click to filter rows by ${getColumnLabel(header.column.id)}`}
-                >
-                    <button
-                        className={`p-1 rounded hover:bg-gray-200 active:bg-gray-300 transition-all duration-75 flex-shrink-0 relative z-20 ${showHoverState ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            // Filter functionality - same as in ColumnMenu
-                            console.log('Filter by:', header.column.id);
-                            // TODO: Implement actual filter functionality
-                        }}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        draggable={false}
-                    >
-                        <FilterIcon />
-                    </button>
-                </Tooltip>
 
                 {/* More options button */}
                 <button
@@ -1030,6 +1223,17 @@ const HeaderCell: React.FC<HeaderCellProps> = ({
                     allColumns={allColumns}
                     onClose={() => setMenuPosition(null)}
                     position={menuPosition}
+                />
+            )}
+
+            {/* Owner filter dropdown */}
+            {isOwnerColumn && filterPosition && (
+                <OwnerFilter
+                    data={data}
+                    selectedOwners={selectedOwners}
+                    onSelectionChange={onOwnerSelectionChange}
+                    onClose={() => setFilterPosition(null)}
+                    position={filterPosition}
                 />
             )}
 
@@ -1092,6 +1296,7 @@ export const Table: React.FC<TableProps> = ({ data, onRowClick, onCellClick, onC
     const [hasInitializedSizing, setHasInitializedSizing] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
+    const [selectedOwners, setSelectedOwners] = useState<Set<string>>(new Set());
     const [editingCell, setEditingCell] = useState<{ rowId: string; columnId: string } | null>(null);
     const [editValue, setEditValue] = useState('');
     const containerRef = useRef<HTMLDivElement>(null);
@@ -1181,8 +1386,19 @@ export const Table: React.FC<TableProps> = ({ data, onRowClick, onCellClick, onC
     // Use preview order when dragging, otherwise use actual order
     const displayOrder = isDragging ? previewOrder : columnOrder;
 
+    // Apply owner filter to data
+    const filteredData = useMemo(() => {
+        if (selectedOwners.size === 0) {
+            return data;
+        }
+        return data.filter(item => selectedOwners.has(item.owner));
+    }, [data, selectedOwners]);
+
+    // Count active filter types (not the number of selected items within each filter)
+    const activeFilterCount = (selectedOwners.size > 0 ? 1 : 0);
+
     const table = useReactTable({
-        data,
+        data: filteredData,
         columns,
         state: {
             sorting,
@@ -1205,6 +1421,7 @@ export const Table: React.FC<TableProps> = ({ data, onRowClick, onCellClick, onC
     const defaultColumnOrder = columns.map(col => col.accessorKey as string);
     const defaultVisibility = getDefaultVisibility();
 
+    // Reset view settings (column width, order, visibility, sorting) - does not reset filters
     const handleReset = () => {
         setSorting([]);
         setColumnOrder(defaultColumnOrder);
@@ -1213,11 +1430,27 @@ export const Table: React.FC<TableProps> = ({ data, onRowClick, onCellClick, onC
         setHasInitializedSizing(false);
     };
 
+    // Clear all filters
+    const handleClearAllFilters = () => {
+        setSelectedOwners(new Set());
+    };
+
     return (
         <div className="space-y-0">
             {/* Toolbar rendered via portal into the navigation bar */}
             {toolbarPortal && createPortal(
                 <>
+                    {/* Active filters indicator */}
+                    {activeFilterCount > 0 && (
+                        <button
+                            onClick={handleClearAllFilters}
+                            className="h-10 px-3 text-[15px] font-normal text-gray-900 hover:text-gray-700 flex items-center gap-2"
+                        >
+                            <span>{activeFilterCount} filter{activeFilterCount !== 1 ? 's' : ''} active</span>
+                            <XIcon />
+                        </button>
+                    )}
+
                     {/* Status filter dropdown */}
                     <div className="relative">
                         <select
@@ -1239,6 +1472,7 @@ export const Table: React.FC<TableProps> = ({ data, onRowClick, onCellClick, onC
                     <ColumnVisibilityDropdown
                         columns={table.getAllLeafColumns()}
                         hiddenCount={hiddenColumnCount}
+                        onReset={handleReset}
                     />
 
                     {/* Search input */}
@@ -1259,15 +1493,6 @@ export const Table: React.FC<TableProps> = ({ data, onRowClick, onCellClick, onC
                             <kbd className="px-1.5 py-0.5 text-[15px] text-gray-500 bg-gray-100 rounded">K</kbd>
                         </div>
                     </div>
-
-                    {/* Refresh button */}
-                    <button
-                        onClick={handleReset}
-                        className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 active:bg-gray-200 transition-colors"
-                        title="Refresh"
-                    >
-                        <RefreshIcon />
-                    </button>
                 </>,
                 toolbarPortal
             )}
@@ -1299,6 +1524,11 @@ export const Table: React.FC<TableProps> = ({ data, onRowClick, onCellClick, onC
                                         resizingColumnId={resizingColumnId}
                                         setResizingColumnId={setResizingColumnId}
                                         allColumns={table.getAllLeafColumns()}
+                                        ownerFilterActive={selectedOwners.size > 0}
+                                        onFilterClick={() => {}}
+                                        data={data}
+                                        selectedOwners={selectedOwners}
+                                        onOwnerSelectionChange={setSelectedOwners}
                                     />
                                 ))}
                             </tr>
